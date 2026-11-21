@@ -652,12 +652,26 @@ function renderRecentNegativeReviews(filtered) {
   }).join('');
 }
 
-function toggleReviewResponseStatus(revId) {
+async function toggleReviewResponseStatus(revId) {
   const target = appState.reviews.find((r) => r.id === revId);
   if (!target) return;
-  target.responseStatus = target.responseStatus === 'Belum Ditanggapi'
-    ? 'Sudah Ditanggapi'
-    : 'Belum Ditanggapi';
+  const tandai = target.responseStatus === 'Belum Ditanggapi';
+
+  if (!PROTOTIPE) {
+    try {
+      await apiFetch(`/reviews/${encodeURIComponent(revId)}/respond`, {
+        method: 'PATCH',
+        body: JSON.stringify({ responded: tandai })
+      });
+    } catch (err) {
+      if (err.status === 0) showToast('Server tidak bisa dihubungi. Status belum tersimpan.');
+      else if (err.status === 404) showToast('Ulasan tidak ditemukan. Muat ulang halaman.');
+      else if (err.status !== 401) showToast((err.body && err.body.message) || 'Status belum tersimpan. Coba lagi.');
+      return;
+    }
+  }
+
+  target.responseStatus = tandai ? 'Sudah Ditanggapi' : 'Belum Ditanggapi';
   refreshAllViews();
   showToast(`Status ulasan diperbarui menjadi "${target.responseStatus}".`);
 }
