@@ -42,7 +42,7 @@
       </div>
 
       <div id="loginModeNote" class="hidden mt-4 p-3 rounded-xl border-[1.5px] border-dashed border-[#231712] text-xs text-[#231712]">
-        <strong>Mode prototipe:</strong> belum tersambung ke API. Login tidak diperiksa dan dashboard memakai data contoh.
+        <strong>Mode prototipe:</strong> belum tersambung ke API. Login tidak diperiksa dan dashboard kosong.
       </div>
 
       <div id="loginErrorBox" class="hidden mt-3 p-3 rounded-xl bg-[#231712] text-[#FAF9F6] text-xs font-semibold">
@@ -351,7 +351,7 @@
       <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-5 sm:py-6">
 
         <div id="dataModeBanner" class="mb-5 p-3 rounded-xl border-[1.5px] border-dashed border-[#231712] bg-[#231712]/5 text-xs text-[#231712]">
-          <strong>Data contoh.</strong> <span id="dataModeText"></span>
+          <strong>Sumber data.</strong> <span id="dataModeText"></span>
         </div>
 
         <section id="tab1" class="tab-panel space-y-6">
@@ -361,8 +361,8 @@
             <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 flex flex-col justify-between">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-xs font-bold text-[#231712]/75">Total Ulasan &amp; Puas</span>
-                <span id="kpiTotalTrend" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712] text-[#FAF9F6]">
-                  ▲ +12%
+                <span id="kpiTotalTrend" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712]/10 text-[#231712]">
+                  –
                 </span>
               </div>
               <div class="mt-3">
@@ -371,7 +371,7 @@
                   <span class="text-xs font-semibold text-[#231712]/70">ulasan</span>
                 </div>
                 <p class="mt-1 text-xs font-bold text-[#231712]">
-                  <span id="kpiSatisfiedPct">0%</span> Pelanggan Puas
+                  <span id="kpiSatisfiedPct">–</span> Pelanggan Puas
                 </p>
               </div>
             </div>
@@ -379,8 +379,8 @@
             <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 flex flex-col justify-between">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-xs font-bold text-[#231712]/75">Negatif Belum Ditanggapi</span>
-                <span id="kpiNegTrend" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold border-[1.5px] border-[#231712] text-[#231712]">
-                  ▼ -1
+                <span id="kpiNegTrend" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712]/10 text-[#231712]">
+                  –
                 </span>
               </div>
               <div class="mt-3">
@@ -423,19 +423,19 @@
               <div class="grid grid-cols-2 gap-1.5 text-xs">
                 <div class="px-2 py-1 rounded-lg bg-[#231712]/5 flex items-center justify-between">
                   <span class="text-[#231712]/75">Rasa</span>
-                  <strong id="aspectRasaVal" class="text-[#231712]">0.0★</strong>
+                  <strong id="aspectRasaVal" class="text-[#231712]">–</strong>
                 </div>
                 <div class="px-2 py-1 rounded-lg bg-[#231712]/5 flex items-center justify-between">
                   <span class="text-[#231712]/75">Harga</span>
-                  <strong id="aspectHargaVal" class="text-[#231712]">0.0★</strong>
+                  <strong id="aspectHargaVal" class="text-[#231712]">–</strong>
                 </div>
                 <div class="px-2 py-1 rounded-lg bg-[#231712]/5 flex items-center justify-between">
                   <span class="text-[#231712]/75">Layanan</span>
-                  <strong id="aspectPelayananVal" class="text-[#231712]">0.0★</strong>
+                  <strong id="aspectPelayananVal" class="text-[#231712]">–</strong>
                 </div>
                 <div class="px-2 py-1 rounded-lg bg-[#231712]/5 flex items-center justify-between">
                   <span class="text-[#231712]/75">Tempat</span>
-                  <strong id="aspectTempatVal" class="text-[#231712]">0.0★</strong>
+                  <strong id="aspectTempatVal" class="text-[#231712]">–</strong>
                 </div>
               </div>
             </div>
@@ -443,14 +443,14 @@
             <div class="sm:col-span-2 xl:col-span-1 bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 flex flex-col justify-between">
               <div class="flex items-center justify-between gap-2">
                 <span class="text-xs font-bold text-[#231712]/75">Kepuasan vs Lalu</span>
-                <span id="kpiSatisfactionDiffBadge" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712] text-[#FAF9F6]">
-                  ▲ +4.2% poin
+                <span id="kpiSatisfactionDiffBadge" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712]/10 text-[#231712]">
+                  –
                 </span>
               </div>
               <div class="mt-3">
                 <div class="flex items-baseline gap-2">
-                  <span id="kpiCurrentScore" class="text-2xl sm:text-3xl font-extrabold text-[#231712]">0%</span>
-                  <span class="text-xs text-[#231712]/70">vs <strong id="kpiPrevScore">0%</strong></span>
+                  <span id="kpiCurrentScore" class="text-2xl sm:text-3xl font-extrabold text-[#231712]">–</span>
+                  <span class="text-xs text-[#231712]/70">vs <strong id="kpiPrevScore">–</strong></span>
                 </div>
                 <p class="mt-1 text-xs text-[#231712]/75">
                   Perbandingan periode sebelumnya
@@ -641,14 +641,8 @@
                     Bukti penurunan keluhan setelah tindakan perbaikan dijalankan kepala cabang
                   </p>
                 </div>
-                <span class="shrink-0 px-2.5 py-0.5 rounded-full bg-[#231712] text-[#FAF9F6] text-[10px] font-bold">
-                  Evaluasi Minggu 11
-                </span>
               </div>
               <div id="chartBeforeAfter" class="w-full"></div>
-              <p class="mt-3 p-3 rounded-xl bg-[#231712]/5 border border-[#231712]/20 text-xs text-[#231712]">
-                <strong>Bukti Manfaat:</strong> Setelah pemasangan panduan QRIS kasir &amp; penggantian es batu kristal padat, keluhan Pelayanan turun <strong>58%</strong> dan keluhan Rasa es encer turun <strong>50%</strong>.
-              </p>
             </div>
 
             <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
@@ -869,7 +863,7 @@
             minlength="3"
             maxlength="2000"
             required
-            placeholder="Contoh: Kopi Susu Djaja terlalu manis hari ini dan antre cukup lama saat jam pulang kerja..."
+            placeholder="Tulis isi ulasan pelanggan di sini..."
             class="w-full px-3.5 py-2.5 text-xs font-medium bg-[#FAF9F6] border border-[#231712]/35 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]"
           ></textarea>
           <p class="mt-1 text-[11px] text-[#231712]/70">

@@ -74,9 +74,9 @@ function endSession(message) {
 
   appState.isLoggedIn = false;
   appState.mobileSidebarOpen = false;
-  appState.reviews = [...initialReviews];
-  appState.activeSuggestions = [...initialActiveSuggestions];
-  appState.completedSuggestions = [...initialCompletedSuggestions];
+  appState.reviews = [];
+  appState.activeSuggestions = [];
+  appState.completedSuggestions = [];
 
   ['manualReviewModal', 'pdfPreviewModal'].forEach((id) => {
     const modal = document.getElementById(id);
@@ -111,395 +111,39 @@ async function apiFetch(path, options = {}) {
   return body;
 }
 
-function showDashboard() {
+// Mengisi appState dengan data nyata dari API.
+// Dipanggil setelah login berhasil dan saat sesi dipulihkan, sebelum refreshAllViews().
+async function loadDashboardData() {
+  // TODO: ambil data nyata lewat apiFetch() setelah endpoint-nya dibuat, misalnya:
+  //   const body = await apiFetch('/reviews');   // GET /api/reviews
+  //   appState.reviews = body.map(normalisasiUlasan);
+  // Saran aktif & riwayat saran menyusul dari endpoint masing-masing.
+  appState.reviews = [];
+  appState.activeSuggestions = [];
+  appState.completedSuggestions = [];
+}
+
+async function showDashboard() {
   appState.isLoggedIn = true;
   appState.mobileSidebarOpen = false;
 
-  const roleText = PROTOTIPE ? 'data contoh' : (ROLE_LABEL[session.role] || session.role || 'Pengguna');
+  const roleText = PROTOTIPE ? 'prototipe' : (ROLE_LABEL[session.role] || session.role || 'Pengguna');
   document.getElementById('greetingText').textContent = `Halo, ${session.name} (${roleText})`;
   document.getElementById('dataModeText').textContent = PROTOTIPE
-    ? 'Mode prototipe: belum tersambung ke API. Semua angka dan ulasan di bawah adalah data contoh.'
-    : 'Login sudah memakai API. Ringkasan, grafik, saran, dan daftar ulasan di bawah masih data contoh sampai endpoint dashboard dibuat.';
+    ? 'Mode prototipe: belum tersambung ke API, jadi dashboard kosong. Ulasan yang Anda input manual hanya tersimpan sementara di browser ini.'
+    : 'Semua data dashboard diambil dari API. Saat ini masih kosong sampai endpoint data ulasan dan saran dibuat.';
 
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('dashboardApp').classList.remove('hidden');
+
+  try {
+    await loadDashboardData();
+  } catch (err) {
+    if (err.status !== 401) showToast('Data dashboard gagal dimuat. Coba muat ulang halaman.');
+  }
+  if (!appState.isLoggedIn) return;
   refreshAllViews();
 }
-
-const REFERENCE_DATE = new Date('2026-11-20T12:00:00');
-
-const initialReviews = [
-  {
-    id: 'REV-201',
-    date: '2026-11-20',
-    source: 'QR',
-    satisfied: false,
-    topic: 'Rasa',
-    menu: 'Kopi Susu Djaja',
-    ratings: { rasa: 2, harga: 4, pelayanan: 4, tempat: 4 },
-    gender: 'Perempuan',
-    ageGroup: '20–25 thn',
-    comment: 'Kopi Susu Djaja hari ini terlalu manis, rasa kopinya ketutup sirup gula aren. Biasanya pas.',
-    responseStatus: 'Belum Ditanggapi'
-  },
-  {
-    id: 'REV-202',
-    date: '2026-11-20',
-    source: 'QR',
-    satisfied: true,
-    topic: 'Pelayanan',
-    menu: 'Croissant Butter',
-    ratings: { rasa: 5, harga: 4, pelayanan: 5, tempat: 5 },
-    gender: 'Laki-laki',
-    ageGroup: '26–35 thn',
-    comment: 'Barista ramah banget dan cekatan. Croissant Butter disajikan hangat dan renyah.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-203',
-    date: '2026-11-19',
-    source: 'Google Maps',
-    satisfied: false,
-    topic: 'Pelayanan',
-    menu: 'Nasi Goreng Signature',
-    singleRating: 2,
-    gender: 'Non-QR',
-    ageGroup: 'Non-QR',
-    comment: 'Datang jam makan malam antre lama hampir 25 menit baru Nasi Goreng Signature keluar.',
-    responseStatus: 'Belum Ditanggapi'
-  },
-  {
-    id: 'REV-204',
-    date: '2026-11-19',
-    source: 'QR',
-    satisfied: true,
-    topic: 'Rasa',
-    menu: 'Es Kopi Aren',
-    ratings: { rasa: 5, harga: 5, pelayanan: 5, tempat: 4 },
-    gender: 'Laki-laki',
-    ageGroup: '20–25 thn',
-    comment: 'Es Kopi Aren seger banget diminum siang-siang di Gunung Anyar, manisnya pas.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-205',
-    date: '2026-11-18',
-    source: 'Media Sosial',
-    satisfied: false,
-    topic: 'Tempat',
-    menu: 'Umum / Tidak Menyebut Menu',
-    singleRating: 2,
-    gender: 'Non-QR',
-    ageGroup: 'Non-QR',
-    comment: 'Area dalam sore tadi terasa panas karena AC kurang dingin waktu meja penuh mahasiswa.',
-    responseStatus: 'Belum Ditanggapi'
-  },
-  {
-    id: 'REV-206',
-    date: '2026-11-18',
-    source: 'QR',
-    satisfied: true,
-    topic: 'Tempat',
-    menu: 'Matcha Latte',
-    ratings: { rasa: 5, harga: 4, pelayanan: 5, tempat: 5 },
-    gender: 'Perempuan',
-    ageGroup: '20–25 thn',
-    comment: 'Matcha Latte creamy dan tidak pahit. Stopkontak banyak, nyaman buat nugas kuliah.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-207',
-    date: '2026-11-17',
-    source: 'QR',
-    satisfied: false,
-    topic: 'Rasa',
-    menu: 'Kopi Susu Djaja',
-    ratings: { rasa: 2, harga: 4, pelayanan: 4, tempat: 4 },
-    gender: 'Perempuan',
-    ageGroup: '< 20 thn',
-    comment: 'Kopi Susu Djaja terlalu manis buat saya, tolong takaran gulanya dikurangi sedikit.',
-    responseStatus: 'Belum Ditanggapi'
-  },
-  {
-    id: 'REV-208',
-    date: '2026-11-17',
-    source: 'Google Maps',
-    satisfied: true,
-    topic: 'Rasa',
-    menu: 'Nasi Goreng Signature',
-    singleRating: 5,
-    gender: 'Non-QR',
-    ageGroup: 'Non-QR',
-    comment: 'Nasi Goreng Signature bumbunya medok dan porsinya mengenyangkan. Rekomen!',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-209',
-    date: '2026-11-16',
-    source: 'QR',
-    satisfied: false,
-    topic: 'Harga',
-    menu: 'Matcha Latte',
-    ratings: { rasa: 4, harga: 2, pelayanan: 4, tempat: 4 },
-    gender: 'Laki-laki',
-    ageGroup: '< 20 thn',
-    comment: 'Rasa Matcha Latte enak, tapi harga agak mahal untuk ukuran gelas reguler mahasiswa.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-210',
-    date: '2026-11-15',
-    source: 'QR',
-    satisfied: true,
-    topic: 'Harga',
-    menu: 'Croissant Butter',
-    ratings: { rasa: 5, harga: 5, pelayanan: 4, tempat: 5 },
-    gender: 'Perempuan',
-    ageGroup: '26–35 thn',
-    comment: 'Harga Croissant Butter sebanding dengan kualitas butternya yang wangi dan berlapis.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-211',
-    date: '2026-11-15',
-    source: 'Media Sosial',
-    satisfied: true,
-    topic: 'Pelayanan',
-    menu: 'Es Kopi Aren',
-    singleRating: 5,
-    gender: 'Non-QR',
-    ageGroup: 'Non-QR',
-    comment: 'Pesan Es Kopi Aren lewat kasir cepat dilayani, staf ramah menyapa.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-212',
-    date: '2026-11-14',
-    source: 'QR',
-    satisfied: true,
-    topic: 'Tempat',
-    menu: 'Umum / Tidak Menyebut Menu',
-    ratings: { rasa: 4, harga: 4, pelayanan: 5, tempat: 5 },
-    gender: 'Laki-laki',
-    ageGroup: '> 35 thn',
-    comment: 'Area parkir cabang Gunung Anyar tertata rapi dan musala bersih.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-
-  {
-    id: 'REV-213',
-    date: '2026-11-12',
-    source: 'QR',
-    satisfied: false,
-    topic: 'Tempat',
-    menu: 'Umum / Tidak Menyebut Menu',
-    ratings: { rasa: 4, harga: 4, pelayanan: 4, tempat: 2 },
-    gender: 'Laki-laki',
-    ageGroup: '26–35 thn',
-    comment: 'Parkir motor penuh meluber ke depan pas malam minggu, agak susah keluar.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-214',
-    date: '2026-11-11',
-    source: 'Google Maps',
-    satisfied: true,
-    topic: 'Rasa',
-    menu: 'Kopi Susu Djaja',
-    singleRating: 5,
-    gender: 'Non-QR',
-    ageGroup: 'Non-QR',
-    comment: 'Kopi Susu Djaja selalu jadi favorit kalau lewat MERR Gunung Anyar.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-215',
-    date: '2026-11-10',
-    source: 'QR',
-    satisfied: false,
-    topic: 'Pelayanan',
-    menu: 'Es Kopi Aren',
-    ratings: { rasa: 4, harga: 4, pelayanan: 2, tempat: 4 },
-    gender: 'Perempuan',
-    ageGroup: '20–25 thn',
-    comment: 'Antre di kasir agak lama waktu jam pulang kerja karena cuma satu barista yang jaga.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-216',
-    date: '2026-11-08',
-    source: 'QR',
-    satisfied: true,
-    topic: 'Rasa',
-    menu: 'Matcha Latte',
-    ratings: { rasa: 5, harga: 4, pelayanan: 5, tempat: 5 },
-    gender: 'Perempuan',
-    ageGroup: '20–25 thn',
-    comment: 'Matcha Latte-nya autentik, tidak bikin enek.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-
-  {
-    id: 'REV-217',
-    date: '2026-11-05',
-    source: 'Media Sosial',
-    satisfied: false,
-    topic: 'Rasa',
-    menu: 'Kopi Susu Djaja',
-    singleRating: 2,
-    gender: 'Non-QR',
-    ageGroup: 'Non-QR',
-    comment: 'Kopi Susu Djaja terlalu manis dan es batunya cepat mencair.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-218',
-    date: '2026-11-03',
-    source: 'QR',
-    satisfied: true,
-    topic: 'Pelayanan',
-    menu: 'Croissant Butter',
-    ratings: { rasa: 5, harga: 4, pelayanan: 5, tempat: 4 },
-    gender: 'Laki-laki',
-    ageGroup: '26–35 thn',
-    comment: 'Pelayanan cepat dan ramah. Croissant Butter selalu fresh dari oven.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-219',
-    date: '2026-11-01',
-    source: 'Google Maps',
-    satisfied: true,
-    topic: 'Tempat',
-    menu: 'Umum / Tidak Menyebut Menu',
-    singleRating: 5,
-    gender: 'Non-QR',
-    ageGroup: 'Non-QR',
-    comment: 'Tempatnya estetik dan bersih, cocok untuk rapat kecil.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-
-  {
-    id: 'REV-220',
-    date: '2026-10-28',
-    source: 'QR',
-    satisfied: false,
-    topic: 'Harga',
-    menu: 'Nasi Goreng Signature',
-    ratings: { rasa: 4, harga: 2, pelayanan: 4, tempat: 4 },
-    gender: 'Laki-laki',
-    ageGroup: '20–25 thn',
-    comment: 'Nasi Goreng Signature enak tapi harganya lumayan mahal kalau tanpa paket minum.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-221',
-    date: '2026-10-25',
-    source: 'QR',
-    satisfied: true,
-    topic: 'Rasa',
-    menu: 'Es Kopi Aren',
-    ratings: { rasa: 5, harga: 5, pelayanan: 5, tempat: 5 },
-    gender: 'Perempuan',
-    ageGroup: '26–35 thn',
-    comment: 'Es Kopi Aren mantap, aroma gula arennya wangi.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-
-  {
-    id: 'REV-222',
-    date: '2026-09-15',
-    source: 'Google Maps',
-    satisfied: true,
-    topic: 'Rasa',
-    menu: 'Kopi Susu Djaja',
-    singleRating: 5,
-    gender: 'Non-QR',
-    ageGroup: 'Non-QR',
-    comment: 'Kopi Susu Djaja terbaik di daerah Surabaya Timur.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-223',
-    date: '2026-08-19',
-    source: 'Media Sosial',
-    satisfied: false,
-    topic: 'Tempat',
-    menu: 'Umum / Tidak Menyebut Menu',
-    singleRating: 2,
-    gender: 'Non-QR',
-    ageGroup: 'Non-QR',
-    comment: 'Area outdoor siang hari panas kalau matahari terik.',
-    responseStatus: 'Sudah Ditanggapi'
-  },
-  {
-    id: 'REV-224',
-    date: '2026-07-10',
-    source: 'Google Maps',
-    satisfied: true,
-    topic: 'Pelayanan',
-    menu: 'Croissant Butter',
-    singleRating: 5,
-    gender: 'Non-QR',
-    ageGroup: 'Non-QR',
-    comment: 'Staf sangat membantu dan sopan. Croissant Butter enak.',
-    responseStatus: 'Sudah Ditanggapi'
-  }
-];
-
-const initialActiveSuggestions = [
-  {
-    id: 'SUG-01',
-    priority: 'Mendesak',
-    topic: 'Rasa',
-    complaintCount: 9,
-    text: 'Kurangi takaran sirup gula aren pada menu Kopi Susu Djaja sebesar 15% dan sediakan opsi less sugar di kasir.',
-    reason: 'Berdasarkan 9 keluhan topik Rasa mengenai minuman terlalu manis dalam periode ini.'
-  },
-  {
-    id: 'SUG-02',
-    priority: 'Sedang',
-    topic: 'Pelayanan',
-    complaintCount: 6,
-    text: 'Tambah 1 personel barista/dapur pendukung saat jam sibuk sore dan makan malam (17.00–20.30 WIB).',
-    reason: 'Berdasarkan 6 keluhan topik Pelayanan terkait antrean dan waktu tunggu pesanan lama.'
-  },
-  {
-    id: 'SUG-03',
-    priority: 'Sedang',
-    topic: 'Tempat',
-    complaintCount: 5,
-    text: 'Turunkan suhu AC ruang utama menjadi 20°C saat tingkat hunian meja di atas 70% dan bersihkan filter berkala.',
-    reason: 'Berdasarkan 5 keluhan topik Tempat mengenai ruangan terasa panas saat sore hari.'
-  },
-  {
-    id: 'SUG-04',
-    priority: 'Rendah',
-    topic: 'Harga',
-    complaintCount: 3,
-    text: 'Buat paket bundling hemat mahasiswa (Matcha Latte / Kopi Susu Djaja + Croissant Butter) di papan kasir.',
-    reason: 'Berdasarkan 3 masukan topik Harga yang menginginkan porsi/harga lebih ramah mahasiswa.'
-  }
-];
-
-const initialCompletedSuggestions = [
-  {
-    id: 'DONE-01',
-    completedDate: '2026-11-12',
-    topic: 'Pelayanan',
-    priority: 'Mendesak',
-    text: 'Pasang papan petunjuk langkah pembayaran QRIS di meja kasir agar transaksi tidak menumpuk.',
-    note: 'Sudah dipasang akrilik petunjuk QRIS di kasir dan staf sudah dibriefing.'
-  },
-  {
-    id: 'DONE-02',
-    completedDate: '2026-11-06',
-    topic: 'Rasa',
-    priority: 'Sedang',
-    text: 'Beralih ke es batu kristal padat (cube) agar minuman dingin tidak cepat encer.',
-    note: 'Sudah ganti supplier es batu kristal padat sejak awal November.'
-  }
-];
 
 const appState = {
   isLoggedIn: false,
@@ -514,9 +158,9 @@ const appState = {
   },
   suggestionInterval: 'Mingguan',
   threshold: 5,
-  reviews: [...initialReviews],
-  activeSuggestions: [...initialActiveSuggestions],
-  completedSuggestions: [...initialCompletedSuggestions],
+  reviews: [],
+  activeSuggestions: [],
+  completedSuggestions: [],
   reviewSearch: '',
   reviewStatusFilter: 'ALL'
 };
@@ -557,18 +201,58 @@ function getDaysCutoff(periodKey) {
   }
 }
 
-function getFilteredReviews() {
-  const maxDays = getDaysCutoff(appState.filters.period);
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+// Tanggal hari ini (jam 12 siang waktu lokal) sebagai titik acuan filter periode.
+function todayNoon() {
+  return new Date(todayISO() + 'T12:00:00');
+}
+
+// Berapa hari kalender yang lalu sebuah tanggal 'YYYY-MM-DD' terjadi (0 = hari ini).
+function daysAgo(dateStr, today = todayNoon()) {
+  return Math.round((today - new Date(dateStr + 'T12:00:00')) / DAY_MS);
+}
+
+function matchesNonPeriodFilters(r) {
+  if (appState.filters.source !== 'ALL' && r.source !== appState.filters.source) return false;
+  if (appState.filters.topic !== 'ALL' && r.topic !== appState.filters.topic) return false;
+  if (appState.filters.menu !== 'ALL' && r.menu !== appState.filters.menu) return false;
+  return true;
+}
+
+// Ulasan pada periode sebelumnya dengan panjang yang sama (mis. 1 minggu sebelum minggu ini),
+// memakai filter sumber/topik/menu yang sama. Kosong bila belum ada data periode lalu.
+function getPreviousPeriodReviews() {
+  const span = getDaysCutoff(appState.filters.period) + 1;
+  const today = todayNoon();
   return appState.reviews.filter((r) => {
-    const revDate = new Date(r.date + 'T12:00:00');
-    const diffDays = Math.floor((REFERENCE_DATE - revDate) / (1000 * 60 * 60 * 24));
-    if (diffDays > maxDays) return false;
-    if (appState.filters.source !== 'ALL' && r.source !== appState.filters.source) return false;
-    if (appState.filters.topic !== 'ALL' && r.topic !== appState.filters.topic) return false;
-    if (appState.filters.menu !== 'ALL' && r.menu !== appState.filters.menu) return false;
-    return true;
+    const diffDays = daysAgo(r.date, today);
+    return diffDays >= span && diffDays < span * 2 && matchesNonPeriodFilters(r);
   });
 }
+
+function getFilteredReviews() {
+  const maxDays = getDaysCutoff(appState.filters.period);
+  const today = todayNoon();
+  return appState.reviews.filter((r) => {
+    const diffDays = daysAgo(r.date, today);
+    if (diffDays > maxDays) return false;
+    return matchesNonPeriodFilters(r);
+  });
+}
+
+const NEUTRAL_BADGE_CLASS = 'px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712]/10 text-[#231712]';
+
+function emptyStateHtml(title, detail) {
+  return `
+    <div class="p-6 rounded-xl bg-[#231712]/5 border border-[#231712]/20 text-center">
+      <p class="text-sm font-extrabold text-[#231712]">${esc(title)}</p>
+      ${detail ? `<p class="text-xs text-[#231712]/75 mt-1">${esc(detail)}</p>` : ''}
+    </div>
+  `;
+}
+
+const AI_PENDING_TEXT = 'Belum ada data — akan terisi setelah analisis AI tersambung.';
 
 function countActiveNonDefaultFilters() {
   let count = 0;
@@ -677,40 +361,63 @@ function renderSummaryCards(filtered) {
     }
   });
 
-  const rasaAvg = cntRasa > 0 ? (sumRasa / cntRasa).toFixed(1) : '0.0';
-  const hargaAvg = cntHarga > 0 ? (sumHarga / cntHarga).toFixed(1) : '0.0';
-  const pelayananAvg = cntPelayanan > 0 ? (sumPelayanan / cntPelayanan).toFixed(1) : '0.0';
-  const tempatAvg = cntTempat > 0 ? (sumTempat / cntTempat).toFixed(1) : '0.0';
+  const fmtAvg = (sum, cnt) => (cnt > 0 ? `${(sum / cnt).toFixed(1)}★` : '–');
 
-  const prevScore = total > 0 ? Math.max(45, Math.min(92, satisfiedPct - 4)) : 0;
-  const diffPoints = satisfiedPct - prevScore;
+  // Pembanding periode sebelumnya dihitung dari ulasan nyata; '–' bila belum ada datanya.
+  const prevReviews = getPreviousPeriodReviews();
+  const prevTotal = prevReviews.length;
+  const prevNeg = prevReviews.filter((r) => !r.satisfied).length;
+  const prevSatisfiedPct = prevTotal > 0
+    ? Math.round((prevReviews.filter((r) => r.satisfied).length / prevTotal) * 100)
+    : null;
+
+  const FILLED_BADGE_CLASS = 'px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712] text-[#FAF9F6]';
+  const OUTLINE_BADGE_CLASS = 'px-2 py-0.5 rounded-full text-[11px] font-extrabold border-[1.5px] border-[#231712] text-[#231712]';
+  const setBadge = (id, text, className) => {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = className;
+  };
+  const arrow = (diff) => (diff > 0 ? '▲ +' : diff < 0 ? '▼ ' : '= ');
 
   document.getElementById('topBarCountBadge').textContent = `${total} ulasan ditampilkan`;
   document.getElementById('kpiTotalCount').textContent = total;
-  document.getElementById('kpiSatisfiedPct').textContent = `${satisfiedPct}%`;
-  document.getElementById('kpiTotalTrend').textContent = total >= 8 ? '▲ +12%' : '▲ +5%';
+  document.getElementById('kpiSatisfiedPct').textContent = total > 0 ? `${satisfiedPct}%` : '–';
+  if (prevTotal > 0) {
+    const pct = Math.round(((total - prevTotal) / prevTotal) * 100);
+    setBadge('kpiTotalTrend', `${arrow(pct)}${pct}%`, FILLED_BADGE_CLASS);
+  } else {
+    setBadge('kpiTotalTrend', '–', NEUTRAL_BADGE_CLASS);
+  }
 
   document.getElementById('kpiUnrespondedNeg').textContent = unrespondedNeg;
   document.getElementById('kpiTotalNeg').textContent = negReviews.length;
-  document.getElementById('kpiNegTrend').textContent = unrespondedNeg <= 3 ? '▼ -1' : '▲ +1';
+  if (prevTotal > 0) {
+    const negDiff = negReviews.length - prevNeg;
+    setBadge('kpiNegTrend', `${arrow(negDiff)}${negDiff}`, negDiff > 0 ? FILLED_BADGE_CLASS : OUTLINE_BADGE_CLASS);
+  } else {
+    setBadge('kpiNegTrend', '–', NEUTRAL_BADGE_CLASS);
+  }
 
   document.getElementById('kpiActiveSugCount').textContent = appState.activeSuggestions.length;
   document.getElementById('kpiDoneSugCount').textContent = appState.completedSuggestions.length;
 
-  document.getElementById('aspectRasaVal').textContent = `${rasaAvg}★`;
-  document.getElementById('aspectHargaVal').textContent = `${hargaAvg}★`;
-  document.getElementById('aspectPelayananVal').textContent = `${pelayananAvg}★`;
-  document.getElementById('aspectTempatVal').textContent = `${tempatAvg}★`;
+  document.getElementById('aspectRasaVal').textContent = fmtAvg(sumRasa, cntRasa);
+  document.getElementById('aspectHargaVal').textContent = fmtAvg(sumHarga, cntHarga);
+  document.getElementById('aspectPelayananVal').textContent = fmtAvg(sumPelayanan, cntPelayanan);
+  document.getElementById('aspectTempatVal').textContent = fmtAvg(sumTempat, cntTempat);
 
-  document.getElementById('kpiCurrentScore').textContent = `${satisfiedPct}%`;
-  document.getElementById('kpiPrevScore').textContent = `${prevScore}%`;
-  const diffBadge = document.getElementById('kpiSatisfactionDiffBadge');
-  if (diffPoints >= 0) {
-    diffBadge.textContent = `▲ +${diffPoints}% poin`;
-    diffBadge.className = 'px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712] text-[#FAF9F6]';
+  document.getElementById('kpiCurrentScore').textContent = total > 0 ? `${satisfiedPct}%` : '–';
+  document.getElementById('kpiPrevScore').textContent = prevSatisfiedPct !== null ? `${prevSatisfiedPct}%` : '–';
+  if (total > 0 && prevSatisfiedPct !== null) {
+    const diffPoints = satisfiedPct - prevSatisfiedPct;
+    setBadge(
+      'kpiSatisfactionDiffBadge',
+      `${arrow(diffPoints)}${diffPoints}% poin`,
+      diffPoints >= 0 ? FILLED_BADGE_CLASS : OUTLINE_BADGE_CLASS
+    );
   } else {
-    diffBadge.textContent = `▼ ${diffPoints}% poin`;
-    diffBadge.className = 'px-2 py-0.5 rounded-full text-[11px] font-extrabold border-[1.5px] border-[#231712] text-[#231712]';
+    setBadge('kpiSatisfactionDiffBadge', '–', NEUTRAL_BADGE_CLASS);
   }
 }
 
@@ -923,19 +630,63 @@ function toggleReviewResponseStatus(revId) {
   showToast(`Status ulasan diperbarui menjadi "${target.responseStatus}".`);
 }
 
-function renderTab1SVGCharts(filtered) {
-  const labelsByPeriod = {
-    '1w': ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
-    '2w': ['M1 Awal', 'M1 Akhir', 'M2 Awal', 'M2 Akhir'],
-    '3w': ['Minggu 1', 'Minggu 2', 'Minggu 3'],
-    '1m': ['Pekan 1', 'Pekan 2', 'Pekan 3', 'Pekan 4'],
-    '1y': ['Q1', 'Q2', 'Q3', 'Q4']
-  };
-  const labels = labelsByPeriod[appState.filters.period] || labelsByPeriod['1w'];
-  const scale = Math.max(0.4, filtered.length / 12);
+// Kelompokkan ulasan per hari (1–2 minggu), per 7 hari (3 minggu–1 bulan), atau per bulan (1 tahun).
+// Mengembalikan label sumbu-X beserta jumlah ulasan puas & tidak puas per kelompok, urut lama → baru.
+function bucketReviewsByPeriod(reviews, period) {
+  const maxDays = getDaysCutoff(period);
+  const today = todayNoon();
+  const fmtDay = (d) => `${d.getDate()}/${d.getMonth() + 1}`;
 
-  const puasPoints = labels.map((_, i) => Math.max(1, Math.round((3 + i * 1.1) * scale)));
-  const negPoints = labels.map((_, i) => Math.max(0, Math.round((2.5 - (i % 3) * 0.6) * scale)));
+  let buckets;
+  let indexOf;
+  if (period === '1y') {
+    const monthKey = (d) => d.getFullYear() * 12 + d.getMonth();
+    const first = new Date(today.getTime() - maxDays * DAY_MS);
+    const firstKey = monthKey(first);
+    const count = monthKey(today) - firstKey + 1;
+    buckets = Array.from({ length: count }, (_, i) => ({
+      label: new Date(first.getFullYear(), first.getMonth() + i, 1).toLocaleDateString('id-ID', { month: 'short' }),
+      puas: 0,
+      neg: 0
+    }));
+    indexOf = (r) => monthKey(new Date(r.date + 'T12:00:00')) - firstKey;
+  } else {
+    const size = (period === '1w' || period === '2w') ? 1 : 7;
+    const count = Math.ceil((maxDays + 1) / size);
+    buckets = Array.from({ length: count }, (_, i) => {
+      // Kelompok ke-i (dari yang terlama) mencakup daysAgo dalam [startAgo - size + 1, startAgo].
+      const startAgo = (count - 1 - i) * size + size - 1;
+      return { label: fmtDay(new Date(today.getTime() - Math.min(startAgo, maxDays) * DAY_MS)), puas: 0, neg: 0 };
+    });
+    indexOf = (r) => count - 1 - Math.floor(Math.max(0, daysAgo(r.date, today)) / size);
+  }
+
+  reviews.forEach((r) => {
+    const idx = indexOf(r);
+    if (idx < 0 || idx >= buckets.length) return;
+    if (r.satisfied) buckets[idx].puas++;
+    else buckets[idx].neg++;
+  });
+  return buckets;
+}
+
+function renderTab1SVGCharts(filtered) {
+  if (filtered.length === 0) {
+    document.getElementById('svgSentimentTrendContainer').innerHTML = emptyStateHtml(
+      'Belum ada data',
+      'Grafik tren akan muncul setelah ada ulasan pada periode dan filter yang dipilih.'
+    );
+  } else {
+    renderSentimentTrendSvg(bucketReviewsByPeriod(filtered, appState.filters.period));
+  }
+  renderComplaintsByTopicSvg(filtered);
+}
+
+function renderSentimentTrendSvg(buckets) {
+  const labelEvery = Math.ceil(buckets.length / 8);
+  const labels = buckets.map((b, i) => ((buckets.length - 1 - i) % labelEvery === 0 ? b.label : ''));
+  const puasPoints = buckets.map((b) => b.puas);
+  const negPoints = buckets.map((b) => b.neg);
 
   const maxVal = Math.max(...puasPoints, ...negPoints, 4);
   const W = 440, H = 220;
@@ -990,7 +741,9 @@ function renderTab1SVGCharts(filtered) {
       ${xLabelsSvg}
     </svg>
   `;
+}
 
+function renderComplaintsByTopicSvg(filtered) {
   const topics = ['Rasa', 'Harga', 'Pelayanan', 'Tempat'];
   const counts = topics.map((t) => filtered.filter((r) => !r.satisfied && r.topic === t).length);
   const totalNeg = counts.reduce((a, b) => a + b, 0);
@@ -1104,30 +857,36 @@ function renderTab2Analytics(filtered) {
     </div>
   `;
 
-  const topicComparison = [
-    { topic: 'Rasa', prev: 6, curr: filtered.filter((r) => !r.satisfied && r.topic === 'Rasa').length },
-    { topic: 'Pelayanan', prev: 7, curr: filtered.filter((r) => !r.satisfied && r.topic === 'Pelayanan').length },
-    { topic: 'Tempat', prev: 4, curr: filtered.filter((r) => !r.satisfied && r.topic === 'Tempat').length },
-    { topic: 'Harga', prev: 3, curr: filtered.filter((r) => !r.satisfied && r.topic === 'Harga').length }
-  ];
-  document.getElementById('chartTopicTrend').innerHTML = topicComparison.map((item) => {
-    const diff = item.curr - item.prev;
-    const isImproved = diff <= 0;
-    const statusLabel = isImproved
-      ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FAF9F6] border-[1.5px] border-[#231712] text-[#231712]">Membaik ▼ (${diff})</span>`
-      : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#231712] text-[#FAF9F6]">Memburuk ▲ (+${diff})</span>`;
-    return `
-      <div class="p-3 rounded-xl border border-[#231712]/20 flex items-center justify-between gap-2">
-        <div>
-          <span class="text-xs font-extrabold text-[#231712]">Topik ${esc(item.topic)}</span>
-          <p class="text-[11px] text-[#231712]/75 mt-0.5">
-            Periode lalu: <strong>${esc(item.prev)} keluhan</strong> → Sekarang: <strong>${esc(item.curr)} keluhan</strong>
-          </p>
+  // Pembanding dihitung dari ulasan nyata periode sebelumnya (panjang periode sama).
+  const prevReviews = getPreviousPeriodReviews();
+  const countNeg = (list, topic) => list.filter((r) => !r.satisfied && r.topic === topic).length;
+  const topicTrendEl = document.getElementById('chartTopicTrend');
+  if (total === 0 && prevReviews.length === 0) {
+    topicTrendEl.innerHTML = emptyStateHtml('Belum ada data', 'Perbandingan muncul setelah ada ulasan pada periode ini dan periode sebelumnya.');
+  } else {
+    topicTrendEl.innerHTML = ['Rasa', 'Pelayanan', 'Tempat', 'Harga'].map((topic) => {
+      const curr = countNeg(filtered, topic);
+      const prev = prevReviews.length > 0 ? countNeg(prevReviews, topic) : null;
+      let statusLabel = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#231712]/10 text-[#231712]">–</span>`;
+      if (prev !== null) {
+        const diff = curr - prev;
+        statusLabel = diff <= 0
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FAF9F6] border-[1.5px] border-[#231712] text-[#231712]">Membaik ▼ (${esc(diff)})</span>`
+          : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#231712] text-[#FAF9F6]">Memburuk ▲ (+${esc(diff)})</span>`;
+      }
+      return `
+        <div class="p-3 rounded-xl border border-[#231712]/20 flex items-center justify-between gap-2">
+          <div>
+            <span class="text-xs font-extrabold text-[#231712]">Topik ${esc(topic)}</span>
+            <p class="text-[11px] text-[#231712]/75 mt-0.5">
+              Periode lalu: <strong>${prev !== null ? `${esc(prev)} keluhan` : 'belum ada data'}</strong> → Sekarang: <strong>${esc(curr)} keluhan</strong>
+            </p>
+          </div>
+          ${statusLabel}
         </div>
-        ${statusLabel}
-      </div>
-    `;
-  }).join('');
+      `;
+    }).join('');
+  }
 
   const menus = [
     'Kopi Susu Djaja',
@@ -1164,85 +923,9 @@ function renderTab2Analytics(filtered) {
     `;
   }).join('');
 
-  const keywords = [
-    { word: '"terlalu manis"', topic: 'Rasa', count: 9 },
-    { word: '"lama"', topic: 'Pelayanan', count: 7 },
-    { word: '"panas"', topic: 'Tempat', count: 5 },
-    { word: '"antre"', topic: 'Pelayanan', count: 5 },
-    { word: '"parkir"', topic: 'Tempat', count: 3 },
-    { word: '"mahal"', topic: 'Harga', count: 3 }
-  ];
-  const maxKw = keywords[0].count;
-  document.getElementById('chartRecurringKeywords').innerHTML = keywords.map((kw) => {
-    const pct = Math.round((kw.count / maxKw) * 100);
-    return `
-      <div>
-        <div class="flex items-center justify-between text-xs mb-1">
-          <div class="flex items-center gap-2">
-            <span class="font-extrabold text-[#231712]">${esc(kw.word)}</span>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-[#231712]/10 text-[#231712]">${esc(kw.topic)}</span>
-          </div>
-          <span class="font-bold text-[#231712]">${esc(kw.count)}x muncul</span>
-        </div>
-        <div class="w-full h-2.5 rounded-full bg-[#231712]/10 overflow-hidden">
-          <div class="h-full bg-[#231712] rounded-full" style="width: ${pct}%"></div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  const evalTopics = ['Pelayanan (QRIS)', 'Rasa (Es Kristal)', 'Tempat (AC)'];
-  const beforeVals = [12, 8, 6];
-  const afterVals = [5, 4, 3];
-  const eW = 420, eH = 195;
-  const ePadL = 28, ePadR = 16, ePadT = 24, ePadB = 34;
-  const ePlotW = eW - ePadL - ePadR;
-  const ePlotH = eH - ePadT - ePadB;
-  const eSlot = ePlotW / evalTopics.length;
-  const eBar = 26;
-
-  const evalBars = evalTopics.map((lbl, i) => {
-    const bH = (beforeVals[i] / 14) * ePlotH;
-    const aH = (afterVals[i] / 14) * ePlotH;
-    const center = ePadL + i * eSlot + eSlot / 2;
-    const x1 = center - eBar - 3;
-    const x2 = center + 3;
-    const y1 = ePadT + ePlotH - bH;
-    const y2 = ePadT + ePlotH - aH;
-
-    return `
-      <rect x="${x1.toFixed(1)}" y="${y1.toFixed(1)}" width="${eBar}" height="${bH.toFixed(1)}" rx="5" fill="url(#evalHatch)" stroke="#231712" stroke-width="1.6" />
-      <text x="${(x1 + eBar / 2).toFixed(1)}" y="${(y1 - 5).toFixed(1)}" text-anchor="middle" font-size="10" font-bold fill="#231712">${beforeVals[i]}</text>
-
-      <rect x="${x2.toFixed(1)}" y="${y2.toFixed(1)}" width="${eBar}" height="${aH.toFixed(1)}" rx="5" fill="#231712" stroke="#231712" stroke-width="1.6" />
-      <text x="${(x2 + eBar / 2).toFixed(1)}" y="${(y2 - 5).toFixed(1)}" text-anchor="middle" font-size="10" font-extrabold fill="#231712">${afterVals[i]}</text>
-
-      <text x="${center.toFixed(1)}" y="${eH - 10}" text-anchor="middle" font-size="10" font-bold fill="#231712">${esc(lbl)}</text>
-    `;
-  }).join('');
-
-  document.getElementById('chartBeforeAfter').innerHTML = `
-    <div class="flex items-center gap-4 mb-2 text-xs font-bold text-[#231712]">
-      <span class="inline-flex items-center gap-1.5">
-        <span class="w-3.5 h-3.5 rounded bg-espresso-hatch border border-[#231712] inline-block"></span>
-        Sebelum Saran
-      </span>
-      <span class="inline-flex items-center gap-1.5">
-        <span class="w-3.5 h-3.5 rounded bg-[#231712] inline-block"></span>
-        Sesudah Saran Dilaksanakan
-      </span>
-    </div>
-    <svg viewBox="0 0 ${eW} ${eH}" class="w-full h-auto overflow-visible" role="img" aria-label="Grafik Sebelum vs Sesudah Saran Dilaksanakan">
-      <defs>
-        <pattern id="evalHatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-          <rect width="8" height="8" fill="#FAF9F6" />
-          <line x1="0" y1="0" x2="0" y2="8" stroke="#231712" stroke-width="2" stroke-opacity="0.45" />
-        </pattern>
-      </defs>
-      <line x1="${ePadL}" y1="${ePadT + ePlotH}" x2="${eW - ePadR}" y2="${ePadT + ePlotH}" stroke="#231712" stroke-opacity="0.25" stroke-width="1.5" />
-      ${evalBars}
-    </svg>
-  `;
+  // Kata kunci keluhan berulang & evaluasi sebelum/sesudah saran belum punya sumber data.
+  document.getElementById('chartRecurringKeywords').innerHTML = emptyStateHtml('Belum ada data', AI_PENDING_TEXT);
+  document.getElementById('chartBeforeAfter').innerHTML = emptyStateHtml('Belum ada data', AI_PENDING_TEXT);
 
   const isQrOnly = appState.filters.source === 'QR';
   const genderItems = [
@@ -1502,7 +1185,7 @@ document.addEventListener('DOMContentLoaded', () => {
       startPrototypeSession();
       loginPassword.value = '';
       showDashboard();
-      showToast('Masuk mode prototipe: data contoh, login tidak diperiksa.');
+      showToast('Masuk mode prototipe: belum tersambung ke API, login tidak diperiksa.');
       return;
     }
 
