@@ -89,7 +89,7 @@ function endSession(message) {
 }
 
 async function apiFetch(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1', ...(options.headers || {}) };
   if (session.token) headers.Authorization = `Bearer ${session.token}`;
 
   const controller = new AbortController();
@@ -112,15 +112,62 @@ async function apiFetch(path, options = {}) {
 }
 
 // Mengisi appState dengan data nyata dari API.
-// Dipanggil setelah login berhasil dan saat sesi dipulihkan, sebelum refreshAllViews().
+const SOURCE_LABEL = { qr: 'QR', google_maps: 'Google Maps', social_media: 'Media Sosial' };
+const MENU_UMUM = 'Umum / Tidak Menyebut Menu';
+const RIWAYAT_HARI = 732;
+
+function kelompokUmur(age) {
+  if (age < 20) return '< 20 thn';
+  if (age <= 25) return '20–25 thn';
+  if (age <= 35) return '26–35 thn';
+  return '> 35 thn';
+}
+function fromApi(item) {
+  const isQr = item.source === 'qr';
+  const kosong = isQr ? 'Tidak dijawab' : 'Non-QR';
+  const topik = Array.isArray(item.topics) && item.topics.length > 0 ? String(item.topics[0]) : '';
+  const menu = Array.isArray(item.menus) && item.menus.length > 0 ? String(item.menus[0]) : '';
+  return {
+    id: String(item.id),
+    date: item.date,
+    source: SOURCE_LABEL[item.source] || item.source,
+    satisfied: typeof item.satisfied === 'boolean' ? item.satisfied : null, // null = belum dinilai
+    topic: topik ? topik.charAt(0).toUpperCase() + topik.slice(1) : '–',
+    menu: menu || MENU_UMUM,
+    ratings: isQr ? item.ratings : null,
+    singleRating: item.rating,
+    averageRating: typeof item.average_rating === 'number' ? item.average_rating : null,
+    gender: item.gender === 'laki-laki' ? 'Laki-laki' : item.gender === 'perempuan' ? 'Perempuan' : kosong,
+    ageGroup: Number.isInteger(item.age) ? kelompokUmur(item.age) : kosong,
+    comment: item.text || '(tanpa komentar)',
+    responseStatus: item.responded ? 'Sudah Ditanggapi' : 'Belum Ditanggapi'
+  };
+}
+
 async function loadDashboardData() {
-  // TODO: ambil data nyata lewat apiFetch() setelah endpoint-nya dibuat, misalnya:
-  //   const body = await apiFetch('/reviews');   // GET /api/reviews
-  //   appState.reviews = body.map(normalisasiUlasan);
-  // Saran aktif & riwayat saran menyusul dari endpoint masing-masing.
-  appState.reviews = [];
   appState.activeSuggestions = [];
   appState.completedSuggestions = [];
+  if (PROTOTIPE) {
+    appState.reviews = [];
+    return;
+  }
+
+  const awal = todayNoon();
+  awal.setDate(awal.getDate() - RIWAYAT_HARI);
+  const from = awal.toISOString().slice(0, 10);
+
+  const semua = [];
+  let total = Infinity;
+  while (semua.length < total) {
+    const body = await apiFetch(`/reviews?from=${from}&limit=1000&offset=${semua.length}`);
+    if (!body || !Array.isArray(body.data)) throw Object.assign(new Error('format'), { status: -1 });
+    if (body.data.length === 0) break;
+    semua.push(...body.data);
+    total = Number(body.total) || 0;
+  }
+
+  if (!appState.isLoggedIn) return; 
+  appState.reviews = semua.map(fromApi);
 }
 
 async function showDashboard() {
@@ -131,7 +178,7 @@ async function showDashboard() {
   document.getElementById('greetingText').textContent = `Halo, ${session.name} (${roleText})`;
   document.getElementById('dataModeText').textContent = PROTOTIPE
     ? 'Mode prototipe: belum tersambung ke API, jadi dashboard kosong. Ulasan yang Anda input manual hanya tersimpan sementara di browser ini.'
-    : 'Semua data dashboard diambil dari API. Saat ini masih kosong sampai endpoint data ulasan dan saran dibuat.';
+    : 'data dari API. analasis AI di coba besok';
 
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('dashboardApp').classList.remove('hidden');
@@ -183,11 +230,16 @@ function showToast(message) {
 }
 
 function getReviewAverageRating(rev) {
-  if (rev.source === 'QR' && rev.ratings) {
-    const { rasa, harga, pelayanan, tempat } = rev.ratings;
-    return (rasa + harga + pelayanan + tempat) / 4;
-  }
-  return rev.singleRating || 3;
+  return typeof rev.averageRating === 'number' ? rev.averageRating : null;
+}
+
+function fmtRating(rev) {
+  const avg = getReviewAverageRating(rev);
+  return avg === null ? '–' : `${avg.toFixed(1)}★`;
+}
+
+function fmtStars(value) {
+  return typeof value === 'number' ? `${value}★` : '–';
 }
 
 function getDaysCutoff(periodKey) {
@@ -263,26 +315,6 @@ function countActiveNonDefaultFilters() {
   return count;
 }
 
-function simulateAIAnalysis(commentText, stars) {
-  const lower = commentText.toLowerCase();
-  const satisfied = stars >= 4;
-
-  let menu = 'Umum / Tidak Menyebut Menu';
-  if (lower.includes('kopi susu djaja') || lower.includes('kopi susu')) {
-    menu = 'Kopi Susu Djaja';
-  } else if (lower.includes('kopi aren') || lower.includes('aren')) {
-    menu = 'Es Kopi Aren';
-  } else if (lower.includes('matcha')) {
-    menu = 'Matcha Latte';
-  } else if (lower.includes('croissant')) {
-    menu = 'Croissant Butter';
-  } else if (lower.includes('nasi goreng')) {
-    menu = 'Nasi Goreng Signature';
-  }
-
-  return { satisfied, menu };
-}
-
 function syncSidebarUI() {
   const sidebar = document.getElementById('appSidebar');
   const backdrop = document.getElementById('mobileSidebarBackdrop');
@@ -335,40 +367,40 @@ function closeMobileSidebar() {
 
 function renderSummaryCards(filtered) {
   const total = filtered.length;
-  const satisfiedCount = filtered.filter((r) => r.satisfied).length;
-  const satisfiedPct = total > 0 ? Math.round((satisfiedCount / total) * 100) : 0;
-
-  const negReviews = filtered.filter((r) => !r.satisfied);
+  const satisfiedCount = filtered.filter((r) => r.satisfied === true).length;
+  const negReviews = filtered.filter((r) => r.satisfied === false);
+  // Persen puas dihitung dari ulasan yang sudah dinilai saja (puas + tidak puas).
+  const assessed = satisfiedCount + negReviews.length;
+  const satisfiedPct = assessed > 0 ? Math.round((satisfiedCount / assessed) * 100) : null;
   const unrespondedNeg = negReviews.filter((r) => r.responseStatus === 'Belum Ditanggapi').length;
 
-  let sumRasa = 0, cntRasa = 0;
-  let sumHarga = 0, cntHarga = 0;
-  let sumPelayanan = 0, cntPelayanan = 0;
-  let sumTempat = 0, cntTempat = 0;
-
+  // Rata-rata per aspek: [jumlah, banyaknya]. Bintang kosong (null) tidak ikut dihitung.
+  const aspek = { Rasa: [0, 0], Harga: [0, 0], Pelayanan: [0, 0], Tempat: [0, 0] };
+  const tambah = (nama, nilai) => {
+    if (typeof nilai !== 'number') return;
+    aspek[nama][0] += nilai;
+    aspek[nama][1] += 1;
+  };
   filtered.forEach((r) => {
-    const avg = getReviewAverageRating(r);
     if (r.source === 'QR' && r.ratings) {
-      sumRasa += r.ratings.rasa; cntRasa++;
-      sumHarga += r.ratings.harga; cntHarga++;
-      sumPelayanan += r.ratings.pelayanan; cntPelayanan++;
-      sumTempat += r.ratings.tempat; cntTempat++;
-    } else {
-      if (r.topic === 'Rasa') { sumRasa += avg; cntRasa++; }
-      if (r.topic === 'Harga') { sumHarga += avg; cntHarga++; }
-      if (r.topic === 'Pelayanan') { sumPelayanan += avg; cntPelayanan++; }
-      if (r.topic === 'Tempat') { sumTempat += avg; cntTempat++; }
+      tambah('Rasa', r.ratings.rasa);
+      tambah('Harga', r.ratings.harga);
+      tambah('Pelayanan', r.ratings.pelayanan);
+      tambah('Tempat', r.ratings.tempat);
+    } else if (aspek[r.topic]) {
+      // Ulasan manual: bintangnya masuk ke aspek sesuai topiknya.
+      tambah(r.topic, getReviewAverageRating(r));
     }
   });
-
-  const fmtAvg = (sum, cnt) => (cnt > 0 ? `${(sum / cnt).toFixed(1)}★` : '–');
+  const fmtAvg = ([sum, cnt]) => (cnt > 0 ? `${(sum / cnt).toFixed(1)}★` : '–');
 
   // Pembanding periode sebelumnya dihitung dari ulasan nyata; '–' bila belum ada datanya.
   const prevReviews = getPreviousPeriodReviews();
   const prevTotal = prevReviews.length;
-  const prevNeg = prevReviews.filter((r) => !r.satisfied).length;
-  const prevSatisfiedPct = prevTotal > 0
-    ? Math.round((prevReviews.filter((r) => r.satisfied).length / prevTotal) * 100)
+  const prevNeg = prevReviews.filter((r) => r.satisfied === false).length;
+  const prevPuas = prevReviews.filter((r) => r.satisfied === true).length;
+  const prevSatisfiedPct = prevPuas + prevNeg > 0
+    ? Math.round((prevPuas / (prevPuas + prevNeg)) * 100)
     : null;
 
   const FILLED_BADGE_CLASS = 'px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712] text-[#FAF9F6]';
@@ -382,7 +414,7 @@ function renderSummaryCards(filtered) {
 
   document.getElementById('topBarCountBadge').textContent = `${total} ulasan ditampilkan`;
   document.getElementById('kpiTotalCount').textContent = total;
-  document.getElementById('kpiSatisfiedPct').textContent = total > 0 ? `${satisfiedPct}%` : '–';
+  document.getElementById('kpiSatisfiedPct').textContent = satisfiedPct !== null ? `${satisfiedPct}%` : '–';
   if (prevTotal > 0) {
     const pct = Math.round(((total - prevTotal) / prevTotal) * 100);
     setBadge('kpiTotalTrend', `${arrow(pct)}${pct}%`, FILLED_BADGE_CLASS);
@@ -402,14 +434,14 @@ function renderSummaryCards(filtered) {
   document.getElementById('kpiActiveSugCount').textContent = appState.activeSuggestions.length;
   document.getElementById('kpiDoneSugCount').textContent = appState.completedSuggestions.length;
 
-  document.getElementById('aspectRasaVal').textContent = fmtAvg(sumRasa, cntRasa);
-  document.getElementById('aspectHargaVal').textContent = fmtAvg(sumHarga, cntHarga);
-  document.getElementById('aspectPelayananVal').textContent = fmtAvg(sumPelayanan, cntPelayanan);
-  document.getElementById('aspectTempatVal').textContent = fmtAvg(sumTempat, cntTempat);
+  document.getElementById('aspectRasaVal').textContent = fmtAvg(aspek.Rasa);
+  document.getElementById('aspectHargaVal').textContent = fmtAvg(aspek.Harga);
+  document.getElementById('aspectPelayananVal').textContent = fmtAvg(aspek.Pelayanan);
+  document.getElementById('aspectTempatVal').textContent = fmtAvg(aspek.Tempat);
 
-  document.getElementById('kpiCurrentScore').textContent = total > 0 ? `${satisfiedPct}%` : '–';
+  document.getElementById('kpiCurrentScore').textContent = satisfiedPct !== null ? `${satisfiedPct}%` : '–';
   document.getElementById('kpiPrevScore').textContent = prevSatisfiedPct !== null ? `${prevSatisfiedPct}%` : '–';
-  if (total > 0 && prevSatisfiedPct !== null) {
+  if (satisfiedPct !== null && prevSatisfiedPct !== null) {
     const diffPoints = satisfiedPct - prevSatisfiedPct;
     setBadge(
       'kpiSatisfactionDiffBadge',
@@ -554,7 +586,7 @@ function confirmSuggestionDone(sugId) {
 function renderRecentNegativeReviews(filtered) {
   const container = document.getElementById('recentNegativeList');
   const negReviews = filtered
-    .filter((r) => !r.satisfied)
+    .filter((r) => r.satisfied === false)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   document.getElementById('negListBadge').textContent = `${negReviews.length} ulasan`;
@@ -574,7 +606,7 @@ function renderRecentNegativeReviews(filtered) {
       ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#231712] text-[#FAF9F6]">Belum Ditanggapi</span>`
       : `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FAF9F6] border-[1.5px] border-[#231712] text-[#231712]">Sudah Ditanggapi</span>`;
 
-    const avgStar = getReviewAverageRating(rev).toFixed(1);
+    const avgStar = fmtRating(rev);
 
     return `
       <div class="p-4 rounded-xl bg-[#FAF9F6] border border-[#231712]/25 border-l-4 border-l-[#231712]">
@@ -589,7 +621,7 @@ function renderRecentNegativeReviews(filtered) {
             <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-[#231712]/10 text-[#231712]">
               Topik: ${esc(rev.topic)}
             </span>
-            <span class="text-[11px] font-extrabold text-[#231712]">${avgStar}★</span>
+            <span class="text-[11px] font-extrabold text-[#231712]">${esc(avgStar)}</span>
             <span class="text-[11px] text-[#231712]/65">• ${esc(rev.date)}</span>
           </div>
           ${statusBadge}
@@ -664,8 +696,8 @@ function bucketReviewsByPeriod(reviews, period) {
   reviews.forEach((r) => {
     const idx = indexOf(r);
     if (idx < 0 || idx >= buckets.length) return;
-    if (r.satisfied) buckets[idx].puas++;
-    else buckets[idx].neg++;
+    if (r.satisfied === true) buckets[idx].puas++;
+    else if (r.satisfied === false) buckets[idx].neg++;
   });
   return buckets;
 }
@@ -745,7 +777,7 @@ function renderSentimentTrendSvg(buckets) {
 
 function renderComplaintsByTopicSvg(filtered) {
   const topics = ['Rasa', 'Harga', 'Pelayanan', 'Tempat'];
-  const counts = topics.map((t) => filtered.filter((r) => !r.satisfied && r.topic === t).length);
+  const counts = topics.map((t) => filtered.filter((r) => r.satisfied === false && r.topic === t).length);
   const totalNeg = counts.reduce((a, b) => a + b, 0);
   const maxTopicCount = Math.max(...counts, 1);
 
@@ -807,15 +839,18 @@ function renderComplaintsByTopicSvg(filtered) {
 function renderTab2Analytics(filtered) {
   const total = filtered.length;
 
+    // Distribusi bintang: hanya ulasan yang punya bintang.
   const starCounts = [0, 0, 0, 0, 0];
   filtered.forEach((r) => {
-    const rounded = Math.min(5, Math.max(1, Math.round(getReviewAverageRating(r))));
-    starCounts[rounded - 1]++;
+    const avg = getReviewAverageRating(r);
+    if (avg === null) return;
+    starCounts[Math.min(5, Math.max(1, Math.round(avg))) - 1]++;
   });
+  const rated = starCounts.reduce((a, b) => a + b, 0);
 
   document.getElementById('chartStarDistribution').innerHTML = [5, 4, 3, 2, 1].map((star) => {
     const cnt = starCounts[star - 1];
-    const pct = total > 0 ? Math.round((cnt / total) * 100) : 0;
+    const pct = rated > 0 ? Math.round((cnt / rated) * 100) : 0;
     const fillClass = star >= 4 ? 'bg-[#231712]' : 'bg-espresso-hatch border border-[#231712]';
     return `
       <div>
@@ -859,7 +894,7 @@ function renderTab2Analytics(filtered) {
 
   // Pembanding dihitung dari ulasan nyata periode sebelumnya (panjang periode sama).
   const prevReviews = getPreviousPeriodReviews();
-  const countNeg = (list, topic) => list.filter((r) => !r.satisfied && r.topic === topic).length;
+  const countNeg = (list, topic) => list.filter((r) => r.satisfied === false && r.topic === topic).length;
   const topicTrendEl = document.getElementById('chartTopicTrend');
   if (total === 0 && prevReviews.length === 0) {
     topicTrendEl.innerHTML = emptyStateHtml('Belum ada data', 'Perbandingan muncul setelah ada ulasan pada periode ini dan periode sebelumnya.');
@@ -901,8 +936,8 @@ function renderTab2Analytics(filtered) {
     1
   );
   document.getElementById('chartMenuSentiment').innerHTML = menus.map((m) => {
-    const praised = filtered.filter((r) => r.menu === m && r.satisfied).length;
-    const complained = filtered.filter((r) => r.menu === m && !r.satisfied).length;
+    const praised = filtered.filter((r) => r.menu === m && r.satisfied === true).length;
+    const complained = filtered.filter((r) => r.menu === m && r.satisfied === false).length;
     const pWidth = Math.round((praised / maxMenuTotal) * 100);
     const cWidth = Math.round((complained / maxMenuTotal) * 100);
     return `
@@ -930,7 +965,8 @@ function renderTab2Analytics(filtered) {
   const isQrOnly = appState.filters.source === 'QR';
   const genderItems = [
     { label: 'Laki-laki', count: filtered.filter((r) => r.gender === 'Laki-laki').length, style: 'bg-[#231712]' },
-    { label: 'Perempuan', count: filtered.filter((r) => r.gender === 'Perempuan').length, style: 'bg-espresso-hatch border border-[#231712]' }
+    { label: 'Perempuan', count: filtered.filter((r) => r.gender === 'Perempuan').length, style: 'bg-espresso-hatch border border-[#231712]' },
+    { label: 'Tidak dijawab', count: filtered.filter((r) => r.gender === 'Tidak dijawab').length, style: 'bg-[#231712]/75' }
   ];
   if (!isQrOnly) {
     genderItems.push({
@@ -963,7 +999,8 @@ function renderTab2Analytics(filtered) {
     { label: '< 20 thn', count: filtered.filter((r) => r.ageGroup === '< 20 thn').length },
     { label: '20–25 thn', count: filtered.filter((r) => r.ageGroup === '20–25 thn').length },
     { label: '26–35 thn', count: filtered.filter((r) => r.ageGroup === '26–35 thn').length },
-    { label: '> 35 thn', count: filtered.filter((r) => r.ageGroup === '> 35 thn').length }
+    { label: '> 35 thn', count: filtered.filter((r) => r.ageGroup === '> 35 thn').length },
+    { label: 'Tidak dijawab', count: filtered.filter((r) => r.ageGroup === 'Tidak dijawab').length }
   ];
   if (!isQrOnly) {
     ageGroups.push({
@@ -1044,20 +1081,22 @@ function renderTab3(filtered) {
   }
 
   reviewsContainer.innerHTML = searchedReviews.map((rev) => {
-    const avgStar = getReviewAverageRating(rev).toFixed(1);
-    const sentimentBadge = rev.satisfied
+    const avgStar = fmtRating(rev);
+    const sentimentBadge = rev.satisfied === true
       ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-[#FAF9F6] border-[1.5px] border-[#231712] text-[#231712]">Puas</span>`
-      : `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712] text-[#FAF9F6]">Tidak Puas</span>`;
+      : rev.satisfied === false
+        ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712] text-[#FAF9F6]">Tidak Puas</span>`
+        : `<span class="${NEUTRAL_BADGE_CLASS}">Belum dinilai</span>`;
 
     const isUnresponded = rev.responseStatus === 'Belum Ditanggapi';
 
     const sourceSpecificMeta = (rev.source === 'QR' && rev.ratings)
       ? `
         <div class="flex flex-wrap items-center gap-1.5 text-[11px] text-[#231712]/85 pt-1">
-          <span class="px-2 py-0.5 rounded bg-[#231712]/5 font-semibold">Rasa: <strong>${esc(rev.ratings.rasa)}★</strong></span>
-          <span class="px-2 py-0.5 rounded bg-[#231712]/5 font-semibold">Harga: <strong>${esc(rev.ratings.harga)}★</strong></span>
-          <span class="px-2 py-0.5 rounded bg-[#231712]/5 font-semibold">Pelayanan: <strong>${esc(rev.ratings.pelayanan)}★</strong></span>
-          <span class="px-2 py-0.5 rounded bg-[#231712]/5 font-semibold">Tempat: <strong>${esc(rev.ratings.tempat)}★</strong></span>
+          <span class="px-2 py-0.5 rounded bg-[#231712]/5 font-semibold">Rasa: <strong>${esc(fmtStars(rev.ratings.rasa))}</strong></span>
+          <span class="px-2 py-0.5 rounded bg-[#231712]/5 font-semibold">Harga: <strong>${esc(fmtStars(rev.ratings.harga))}</strong></span>
+          <span class="px-2 py-0.5 rounded bg-[#231712]/5 font-semibold">Pelayanan: <strong>${esc(fmtStars(rev.ratings.pelayanan))}</strong></span>
+          <span class="px-2 py-0.5 rounded bg-[#231712]/5 font-semibold">Tempat: <strong>${esc(fmtStars(rev.ratings.tempat))}</strong></span>
           <span class="px-2 py-0.5 rounded border border-[#231712]/25 font-bold">${esc(rev.gender)} • ${esc(rev.ageGroup)}</span>
         </div>
       `
@@ -1082,7 +1121,7 @@ function renderTab3(filtered) {
             <span class="px-2 py-0.5 rounded text-[11px] font-semibold border border-[#231712]/20 text-[#231712]/85">
               Menu: ${esc(rev.menu)}
             </span>
-            <span class="text-[11px] text-[#231712]/65">${esc(rev.date)} • Rata-rata ${avgStar}★</span>
+            <span class="text-[11px] text-[#231712]/65">${esc(rev.date)} • Rata-rata ${esc(avgStar)}</span>
           </div>
 
           <p class="text-xs sm:text-sm font-medium text-[#231712] leading-relaxed">
@@ -1352,53 +1391,66 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const ai = simulateAIAnalysis(comment, rating);
-
-    let savedId = null;
-    if (!PROTOTIPE) {
-      const submitBtn = e.submitter || e.target.querySelector('[type="submit"]');
-      submitBtn.disabled = true;
-      try {
-        const body = await apiFetch('/reviews/manual', {
-          method: 'POST',
-          body: JSON.stringify({
-            text: comment,
-            source: source === 'Google Maps' ? 'google_maps' : 'social_media',
-            review_date: date,
-            rating,
-            topic: topic.toLowerCase()
-          })
-        });
-        savedId = body && body.id;
-      } catch (err) {
-        if (err.status === 0) showToast('Server tidak bisa dihubungi. Ulasan belum tersimpan.');
-        else if (err.status !== 401) showToast((err.body && err.body.message) || 'Ulasan belum tersimpan. Coba lagi.');
-        return;
-      } finally {
-        submitBtn.disabled = false;
-      }
+    // Mode prototipe (tanpa API): ulasan hanya disimpan sementara di browser ini.
+    if (PROTOTIPE) {
+      appState.reviews.unshift({
+        id: 'LOKAL-' + Date.now(),
+        date,
+        source,
+        satisfied: rating >= 4,
+        topic,
+        menu: MENU_UMUM,
+        ratings: null,
+        singleRating: rating,
+        averageRating: rating,
+        gender: 'Non-QR',
+        ageGroup: 'Non-QR',
+        comment,
+        responseStatus: 'Belum Ditanggapi'
+      });
+      document.getElementById('manualComment').value = '';
+      closeManualModal();
+      refreshAllViews();
+      showToast(`Ulasan ${source} ditambahkan (mode prototipe, hanya di browser ini).`);
+      return;
     }
 
-    appState.reviews.unshift({
-      id: savedId ? `DB-${savedId}` : 'REV-' + (200 + appState.reviews.length + 1),
-      date,
-      source,
-      satisfied: ai.satisfied,
-      topic,
-      menu: ai.menu,
-      singleRating: rating,
-      gender: 'Non-QR',
-      ageGroup: 'Non-QR',
-      comment,
-      responseStatus: ai.satisfied ? 'Sudah Ditanggapi' : 'Belum Ditanggapi'
-    });
+    const submitBtn = e.submitter || e.target.querySelector('[type="submit"]');
+    submitBtn.disabled = true;
+    let savedId = null;
+    try {
+      const body = await apiFetch('/reviews/manual', {
+        method: 'POST',
+        body: JSON.stringify({
+          text: comment,
+          source: source === 'Google Maps' ? 'google_maps' : 'social_media',
+          review_date: date,
+          rating,
+          topic: topic.toLowerCase()
+        })
+      });
+      savedId = body && body.id;
+    } catch (err) {
+      if (err.status === 0) showToast('Server tidak bisa dihubungi. Ulasan belum tersimpan.');
+      else if (err.status !== 401) showToast((err.body && err.body.message) || 'Ulasan belum tersimpan. Coba lagi.');
+      return;
+    } finally {
+      submitBtn.disabled = false;
+    }
 
     document.getElementById('manualComment').value = '';
     closeManualModal();
+
+    // Ambil ulang dari API supaya puas/tidak puas & rata-rata memakai hitungan backend.
+    try {
+      await loadDashboardData();
+    } catch (err) {
+      if (err.status !== 401) showToast('Ulasan tersimpan, tapi dashboard gagal dimuat ulang. Muat ulang halaman.');
+      return;
+    }
+    if (!appState.isLoggedIn) return;
     refreshAllViews();
-    showToast(savedId
-      ? `Ulasan ${source} tersimpan di database (id ${savedId}).`
-      : `Ulasan ${source} ditambahkan (mode prototipe). Simulasi: ${ai.satisfied ? 'Puas' : 'Tidak Puas'} • Menu: ${ai.menu}.`);
+    showToast(`Ulasan ${source} tersimpan di database (id ${savedId}).`);
   });
 
 
@@ -1409,10 +1461,10 @@ document.addEventListener('DOMContentLoaded', () => {
       r.id,
       r.date,
       r.source,
-      r.satisfied ? 'Puas' : 'Tidak Puas',
+      r.satisfied === true ? 'Puas' : r.satisfied === false ? 'Tidak Puas' : 'Belum dinilai',
       r.topic,
       r.menu,
-      getReviewAverageRating(r).toFixed(1),
+      getReviewAverageRating(r) ?? '',
       r.responseStatus,
       r.comment
     ].map(csvCell));
@@ -1436,9 +1488,9 @@ document.addEventListener('DOMContentLoaded', () => {
     closeMobileSidebar();
     const filtered = getFilteredReviews();
     const total = filtered.length;
-    const satCount = filtered.filter((r) => r.satisfied).length;
-    const satPct = total > 0 ? Math.round((satCount / total) * 100) : 0;
-    const negList = filtered.filter((r) => !r.satisfied);
+    const satCount = filtered.filter((r) => r.satisfied === true).length;
+    const negList = filtered.filter((r) => r.satisfied === false);
+    const satPct = satCount + negList.length > 0 ? Math.round((satCount / (satCount + negList.length)) * 100) : 0;
 
     const periodText = document.getElementById('filterPeriod').selectedOptions[0].text;
     document.getElementById('pdfPrintDate').textContent = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
