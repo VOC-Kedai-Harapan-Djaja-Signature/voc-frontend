@@ -171,11 +171,8 @@ function applySettings(settings) {
 }
 
 async function loadDashboardData() {
-  const pengaturan = await apiFetch('/settings');
-
-  if (!appState.isLoggedIn) return; 
-  appState.reviews = semua.map(fromApi);
-  applySettings(pengaturan);
+  appState.activeSuggestions = [];
+  appState.completedSuggestions = [];
   if (PROTOTIPE) {
     appState.reviews = [];
     return;
@@ -185,6 +182,7 @@ async function loadDashboardData() {
   awal.setDate(awal.getDate() - RIWAYAT_HARI);
   const from = awal.toISOString().slice(0, 10);
 
+  // 1. Ulasan (data utama). API mengirim paling banyak 1000 sekali minta, jadi diambil per halaman.
   const semua = [];
   let total = Infinity;
   while (semua.length < total) {
@@ -194,9 +192,13 @@ async function loadDashboardData() {
     semua.push(...body.data);
     total = Number(body.total) || 0;
   }
-
-  if (!appState.isLoggedIn) return; 
+  if (!appState.isLoggedIn) return; // sudah logout saat data masih dimuat
   appState.reviews = semua.map(fromApi);
+
+  // 2. Pengaturan (data pelengkap). Kalau gagal, ulasan di atas tetap tampil.
+  const pengaturan = await apiFetch('/settings');
+  if (!appState.isLoggedIn) return;
+  applySettings(pengaturan);
 }
 
 async function showDashboard() {
