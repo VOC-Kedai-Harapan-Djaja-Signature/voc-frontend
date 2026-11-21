@@ -144,9 +144,38 @@ function fromApi(item) {
   };
 }
 
+const INTERVAL_KE_API = { 'Mingguan': 'mingguan', '2 Mingguan': '2_mingguan', '3 Mingguan': '3_mingguan', 'Bulanan': 'bulanan' };
+const INTERVAL_DARI_API = Object.fromEntries(Object.entries(INTERVAL_KE_API).map(([label, nilai]) => [nilai, label]));
+
+function bolehUbahPengaturan() {
+  return PROTOTIPE || session.role === 'kepala_cabang';
+}
+
+function applySettings(settings) {
+  appState.threshold = settings.suggestion_threshold;
+  appState.suggestionInterval = INTERVAL_DARI_API[settings.suggestion_interval] || 'Mingguan';
+
+  document.getElementById('thresholdSlider').value = appState.threshold;
+  document.getElementById('thresholdNumberInput').value = appState.threshold;
+  document.getElementById('currentThresholdLabel').textContent = `${appState.threshold} keluhan baru`;
+  document.getElementById('suggestionInterval').value = appState.suggestionInterval;
+
+  // Staf hanya bisa melihat: kontrolnya dinonaktifkan.
+  const boleh = bolehUbahPengaturan();
+  ['suggestionInterval', 'thresholdSlider', 'thresholdNumberInput', 'saveThresholdBtn'].forEach((id) => {
+    const el = document.getElementById(id);
+    el.disabled = !boleh;
+    el.classList.add('disabled:opacity-60');
+    el.title = boleh ? '' : 'Hanya Kepala Cabang yang dapat mengubah pengaturan ini.';
+  });
+}
+
 async function loadDashboardData() {
-  appState.activeSuggestions = [];
-  appState.completedSuggestions = [];
+  const pengaturan = await apiFetch('/settings');
+
+  if (!appState.isLoggedIn) return; 
+  appState.reviews = semua.map(fromApi);
+  applySettings(pengaturan);
   if (PROTOTIPE) {
     appState.reviews = [];
     return;
@@ -1322,10 +1351,31 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
-  document.getElementById('suggestionInterval').addEventListener('change', (e) => {
-    appState.suggestionInterval = e.target.value;
+  document.getElementById('suggestionInterval').addEventListener('change', async (e) => {
+    const select = e.target;
+    const label = select.value;
+
+    if (PROTOTIPE) {
+      appState.suggestionInterval = label;
+    } else {
+      select.disabled = true;
+      try {
+        applySettings(await apiFetch('/settings', {
+          method: 'PATCH',
+          body: JSON.stringify({ suggestion_interval: INTERVAL_KE_API[label] })
+        }));
+      } catch (err) {
+        select.value = appState.suggestionInterval; // kembalikan ke pilihan yang tersimpan
+        if (err.status === 0) showToast('Server tidak bisa dihubungi. Interval belum tersimpan.');
+        else if (err.status !== 401) showToast((err.body && err.body.message) || 'Interval belum tersimpan. Coba lagi.');
+        return;
+      } finally {
+        select.disabled = !bolehUbahPengaturan();
+      }
+    }
+
     renderActiveSuggestions();
-    showToast(`Interval saran diubah ke: ${e.target.value}.`);
+    showToast(`Interval saran diubah ke: ${appState.suggestionInterval}.`);
   });
 
   const thresholdSlider = document.getElementById('thresholdSlider');
@@ -1340,16 +1390,35 @@ document.addEventListener('DOMContentLoaded', () => {
     v = Math.min(25, Math.max(2, v));
     thresholdSlider.value = v;
   });
-  document.getElementById('saveThresholdBtn').addEventListener('click', () => {
+  document.getElementById('saveThresholdBtn').addEventListener('click', async () => {
     let v = parseInt(thresholdNumberInput.value, 10);
     if (isNaN(v) || v < 2) v = 2;
     if (v > 25) v = 25;
     thresholdNumberInput.value = v;
     thresholdSlider.value = v;
-    appState.threshold = v;
-    document.getElementById('currentThresholdLabel').textContent = `${v} keluhan baru`;
+
+    if (PROTOTIPE) {
+      appState.threshold = v;
+      document.getElementById('currentThresholdLabel').textContent = `${v} keluhan baru`;
+    } else {
+      const btn = document.getElementById('saveThresholdBtn');
+      btn.disabled = true;
+      try {
+        applySettings(await apiFetch('/settings', {
+          method: 'PATCH',
+          body: JSON.stringify({ suggestion_threshold: v })
+        }));
+      } catch (err) {
+        if (err.status === 0) showToast('Server tidak bisa dihubungi. Ambang belum tersimpan.');
+        else if (err.status !== 401) showToast((err.body && err.body.message) || 'Ambang belum tersimpan. Coba lagi.');
+        return;
+      } finally {
+        btn.disabled = !bolehUbahPengaturan();
+      }
+    }
+
     renderActiveSuggestions();
-    showToast(`Ambang munculnya saran disimpan: ${v} keluhan baru.`);
+    showToast(`Ambang munculnya saran disimpan: ${appState.threshold} keluhan baru.`);
   });
 
   document.getElementById('reviewSearchInput').addEventListener('input', (e) => {
