@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Form Review - Harapan Djaja Signature</title>
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="stylesheet" href="/fonts/fonts.css">
+<script src="/config.js"></script>
+<script src="/form.js" defer></script>
+<style>
+:root{--bg:#f2f5f0;--card:#fff;--ink:#1c2a26;--mute:#64766f;--line:#dde5df;--acc:#1f6b57;--on:#fff;--soft:#e4efe9;--star:#d9a02b;--bad:#b83a28;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121a18;--card:#1a2522;--ink:#e6efeb;--mute:#93a69f;--line:#2a3833;--acc:#5fb89c;--on:#0f1c18;--soft:#223630;--star:#e8b449;--bad:#ef7a66;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121a18;--card:#1a2522;--ink:#e6efeb;--mute:#93a69f;--line:#2a3833;--acc:#5fb89c;--on:#0f1c18;--soft:#223630;--star:#e8b449;--bad:#ef7a66;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "Instrument Sans",system-ui,sans-serif}
+h1,h2{font-family:"Young Serif",Georgia,serif;font-weight:400;line-height:1.2;margin:0}
+button,input,textarea{font:inherit;color:inherit}button{cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.wrap{max-width:440px;margin:0 auto;padding:16px}
+.note{font-size:13px;color:var(--mute);text-align:center;margin:4px 0 12px}
+.phone{background:var(--card);border:1px solid var(--line);border-radius:22px;overflow:hidden}
+.head{background:var(--acc);color:var(--on);padding:22px}
+.head small{display:block;opacity:.85;font-size:13px;margin-bottom:8px}
+.head h1{font-size:24px}.head p{margin:6px 0 0;font-size:14px;opacity:.92}
+.body{padding:20px 22px 24px;display:grid;gap:22px}
+.q{font-weight:600;margin:0 0 8px}.q span{font-weight:400;color:var(--mute);font-size:13px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts button{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:9px 15px;font-weight:500}
+.opts button[aria-pressed=true]{background:var(--acc);color:var(--on);border-color:var(--acc)}
+.age{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.agee{flex-basis:100%;font-size:13px;color:var(--bad);min-height:0}
+#age{width:110px;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px}
+textarea{width:100%;min-height:104px;resize:vertical;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:12px}
+.cc{text-align:right;font-size:12px;color:var(--mute);margin-top:4px}
+.asp{display:grid;gap:10px}
+.arow{display:grid;grid-template-columns:92px 1fr;align-items:center;gap:6px}
+.arow .n{font-weight:500}
+.st{display:flex;gap:2px}
+.st button{border:0;background:none;padding:2px;line-height:0}
+.st svg{width:36px;height:36px;fill:none;stroke:var(--mute);stroke-width:1.6;stroke-linejoin:round;transition:transform .12s}
+.st button.on svg{fill:var(--star);stroke:var(--star)}
+.st button:active svg{transform:scale(.88)}
+.hint{font-size:12px;color:var(--mute);margin:-4px 0 0 98px;min-height:18px}
+.priv{font-size:12px;color:var(--mute);margin:0}
+.btn{border:0;background:var(--acc);color:var(--on);padding:14px 18px;border-radius:12px;font-weight:600;width:100%;font-size:16px}
+.btn:disabled{opacity:.45;cursor:not-allowed}.btn.g{background:none;color:var(--acc);border:1px solid var(--acc);width:auto;padding:10px 16px;font-size:14px}
+.err{background:#f9e2dd;color:var(--bad);border-radius:10px;padding:10px 12px;font-size:14px;display:none}
+.thanks{display:none;text-align:center;padding:36px 22px 26px}
+.tick{width:60px;height:60px;border-radius:50%;background:var(--soft);color:var(--acc);display:grid;place-items:center;margin:0 auto 14px;font-size:30px}
+.thanks h2{font-size:22px;margin-bottom:8px}.thanks p{color:var(--mute);margin:0 0 18px}
+details{text-align:left;margin-top:20px;border-top:1px solid var(--line);padding-top:12px;font-size:13px;color:var(--mute)}
+summary{cursor:pointer;color:var(--acc);font-weight:600}
+pre{background:var(--bg);border-radius:10px;padding:10px;overflow-x:auto;font-size:12px;color:var(--ink);margin:10px 0 0}
+@media(prefers-reduced-motion:reduce){.st svg{transition:none}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+<p class="note" data-proto hidden>Mode prototipe: belum terhubung ke API. Tampilan di ponsel pelanggan setelah memindai QR di meja.</p>
+<div class="phone">
+<form id="form" novalidate>
+ <div class="head"><small>Kedai Harapan Djaja Signature, Gunung Anyar</small><h1>Bagaimana pengalamanmu hari ini?</h1></div>
+ <div class="body">
+  <div><p class="q">Gender</p>
+   <div class="opts" id="gender" role="group" aria-label="Gender">
+    <button type="button" aria-pressed="false" data-v="laki-laki">Laki-laki</button>
+    <button type="button" aria-pressed="false" data-v="perempuan">Perempuan</button>
+   </div></div>
+  <div><p class="q">Umur</p>
+   <div class="age"><input type="text" id="age" inputmode="numeric" maxlength="2" placeholder="Umur (10–90)" aria-label="Umur dalam tahun, 10 sampai 90" aria-describedby="ageErr"><span class="priv">tahun</span><div class="agee" id="ageErr" role="alert"></div>
+   </div></div>
+  <div><p class="q">Beri bintang untuk tiap aspek</p><div class="asp" id="asp"></div></div>
+  <div><p class="q">Ceritakan pengalamanmu</p>
+   <textarea id="cm" maxlength="500" placeholder="Bagikan detail pengalamanmu di kedai ini"></textarea><div class="cc"><span id="cc">0</span>/500</div></div>
+  <div class="err" id="err" role="alert"></div>
+  <button class="btn" id="send" type="submit" disabled>Kirim ulasan</button>
+  <p class="priv">Umur dan gender boleh dikosongkan. Dipakai hanya untuk memahami pelanggan secara umum, tidak ada nama atau nomor telepon yang diminta.</p>
+ </div>
+</form>
+<div class="thanks" id="thx">
+ <div class="tick" aria-hidden="true">✓</div>
+ <h2>Terima kasih atas ulasanmu</h2>
+ <p>Masukanmu membantu kami memperbaiki kedai. Sampai jumpa lagi di Harapan Djaja.</p>
+ <button class="btn g" id="again" type="button" data-proto hidden>Isi ulasan lagi (untuk coba prototipe)</button>
+ <details data-proto hidden><summary>Data yang dikirim ke API (untuk tim)</summary><p id="apiSt" style="margin:8px 0 0"></p><pre id="pl"></pre></details>
+</div>
+</div>
+</div>
+</body>
+</html>

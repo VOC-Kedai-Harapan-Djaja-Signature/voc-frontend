@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice of Customer — Harapan Djaja Signature Gunung Anyar</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <link rel="stylesheet" href="/fonts/fonts.css" />
+  <link rel="stylesheet" href="/dashboard/tailwind.css" />
+  <script src="/config.js"></script>
+  <script src="/dashboard/dashboard.js" defer></script>
+</head>
+<body class="min-h-screen bg-[#FAF9F6] text-[#231712] selection:bg-[#231712] selection:text-[#FAF9F6]">
+
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-[calc(100%-2.5rem)]"></div>
+
+  <section id="loginScreen" class="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-[#FAF9F6]">
+    <div class="w-full max-w-md bg-[#FAF9F6] border-2 border-[#231712] rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div class="flex items-center gap-3.5 pb-5 border-b border-[#231712]/20">
+        <div class="w-12 h-12 rounded-xl bg-[#231712] text-[#FAF9F6] flex items-center justify-center shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zm4-5v2m4-2v2m4-2v2" />
+          </svg>
+        </div>
+        <div>
+          <span class="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#231712] text-[#FAF9F6] mb-1">
+            Akses Terbatas • Lampiran A
+          </span>
+          <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-[#231712] leading-snug">
+            Kedai Harapan Djaja Signature
+          </h1>
+          <p class="text-xs font-semibold text-[#231712]/75">Cabang Gunung Anyar, Surabaya</p>
+        </div>
+      </div>
+
+      <div class="mt-4 p-3.5 rounded-xl bg-[#231712]/5 border border-[#231712]/20 text-xs leading-relaxed text-[#231712]/85">
+        <p class="font-bold text-[#231712]">Gerbang Masuk Kepala Cabang</p>
+        <p class="mt-0.5">
+          Dashboard Voice of Customer dilindungi autentikasi akun Kepala Cabang agar data masukan pelanggan tetap terjaga sesuai standar ISO/IEC 25010.
+        </p>
+      </div>
+
+      <div id="loginModeNote" class="hidden mt-4 p-3 rounded-xl border-[1.5px] border-dashed border-[#231712] text-xs text-[#231712]">
+        <strong>Mode prototipe:</strong> belum tersambung ke API. Login tidak diperiksa dan dashboard memakai data contoh.
+      </div>
+
+      <div id="loginErrorBox" class="hidden mt-3 p-3 rounded-xl bg-[#231712] text-[#FAF9F6] text-xs font-semibold">
+        Harap isi email dan password terlebih dahulu.
+      </div>
+
+      <form id="loginForm" class="mt-4 space-y-4" novalidate>
+        <div>
+          <label for="loginEmail" class="block text-xs font-bold text-[#231712] mb-1.5">
+            Email
+          </label>
+          <input
+            type="email"
+            id="loginEmail"
+            autocomplete="username"
+            inputmode="email"
+            maxlength="254"
+            class="w-full px-3.5 py-2.5 text-sm bg-[#FAF9F6] border border-[#231712]/35 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712] transition"
+            placeholder="nama@contoh.id"
+            required
+          />
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="loginPassword" class="block text-xs font-bold text-[#231712]">
+              Password
+            </label>
+            <button type="button" id="togglePasswordBtn" class="text-[11px] font-semibold underline text-[#231712]/75 hover:text-[#231712] cursor-pointer">
+              Tampilkan
+            </button>
+          </div>
+          <input
+            type="password"
+            id="loginPassword"
+            autocomplete="current-password"
+            maxlength="200"
+            class="w-full px-3.5 py-2.5 text-sm bg-[#FAF9F6] border border-[#231712]/35 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712] transition"
+            placeholder="Masukkan password"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          id="loginSubmitBtn"
+          class="w-full py-3 px-4 rounded-xl bg-[#231712] text-[#FAF9F6] text-sm font-bold hover:bg-[#231712]/90 active:scale-[0.99] transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+        >
+          <span id="loginSubmitText">Masuk ke Dashboard</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </button>
+      </form>
+
+      <div class="mt-6 pt-4 border-t border-[#231712]/15 flex items-center justify-between text-[11px] text-[#231712]/65">
+        <span>Sistem VoC • Kelompok 7</span>
+        <span>Akses khusus staf cabang</span>
+      </div>
+    </div>
+  </section>
+
+  <div id="dashboardApp" class="hidden min-h-screen flex bg-[#FAF9F6] text-[#231712]">
+
+    <div
+      id="mobileSidebarBackdrop"
+      class="fixed inset-0 z-40 bg-[#231712]/50 backdrop-blur-[1px] hidden lg:hidden transition-opacity"
+      aria-hidden="true"
+    ></div>
+
+    <aside
+      id="appSidebar"
+      aria-label="Sidebar Filter dan Menu"
+      class="fixed inset-y-0 left-0 z-50 w-72 sm:w-80 bg-[#FAF9F6] border-r border-[#231712]/20 flex flex-col transform -translate-x-full transition-transform duration-200 ease-out lg:static lg:translate-x-0 lg:shrink-0"
+    >
+      <div class="p-4 border-b border-[#231712]/20 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-[#231712] text-[#FAF9F6] flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zm4-5v2m4-2v2m4-2v2" />
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs font-extrabold tracking-tight text-[#231712]">Filter &amp; Kontrol</p>
+            <p class="text-[11px] text-[#231712]/70">Harapan Djaja Signature</p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          id="closeSidebarBtn"
+          class="px-2.5 py-1.5 rounded-xl border border-[#231712]/30 bg-[#FAF9F6] hover:bg-[#231712] hover:text-[#FAF9F6] text-xs font-bold text-[#231712] transition cursor-pointer"
+          title="Sembunyikan Sidebar"
+        >
+          ✕ Tutup
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-5">
+
+        <div class="space-y-3.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#231712]/70">
+              Filter Data Ulasan
+            </span>
+            <span id="sidebarFilterCountBadge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#231712] text-[#FAF9F6]">
+              0 aktif
+            </span>
+          </div>
+
+          <div>
+            <label for="filterPeriod" class="block text-xs font-bold text-[#231712] mb-1">
+              1. Periode
+            </label>
+            <select id="filterPeriod" class="w-full px-3 py-2.5 text-xs font-semibold bg-[#FAF9F6] border border-[#231712]/30 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]">
+              <option value="1w" selected>1 Minggu (Default)</option>
+              <option value="2w">2 Minggu</option>
+              <option value="3w">3 Minggu</option>
+              <option value="1m">Bulan</option>
+              <option value="1y">Tahun</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="filterSource" class="block text-xs font-bold text-[#231712] mb-1">
+              2. Sumber Ulasan
+            </label>
+            <select id="filterSource" class="w-full px-3 py-2.5 text-xs font-semibold bg-[#FAF9F6] border border-[#231712]/30 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]">
+              <option value="ALL" selected>Semua Sumber</option>
+              <option value="QR">QR</option>
+              <option value="Google Maps">Google Maps</option>
+              <option value="Media Sosial">Media Sosial</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="filterTopic" class="block text-xs font-bold text-[#231712] mb-1">
+              3. Topik Keluhan / Pujian
+            </label>
+            <select id="filterTopic" class="w-full px-3 py-2.5 text-xs font-semibold bg-[#FAF9F6] border border-[#231712]/30 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]">
+              <option value="ALL" selected>Semua Topik</option>
+              <option value="Rasa">Rasa</option>
+              <option value="Harga">Harga</option>
+              <option value="Pelayanan">Pelayanan</option>
+              <option value="Tempat">Tempat</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="filterMenu" class="block text-xs font-bold text-[#231712] mb-1">
+              4. Menu (Deteksi AI)
+            </label>
+            <select id="filterMenu" class="w-full px-3 py-2.5 text-xs font-semibold bg-[#FAF9F6] border border-[#231712]/30 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]">
+              <option value="ALL" selected>Semua Menu</option>
+              <option value="Kopi Susu Djaja">Kopi Susu Djaja</option>
+              <option value="Es Kopi Aren">Es Kopi Aren</option>
+              <option value="Matcha Latte">Matcha Latte</option>
+              <option value="Croissant Butter">Croissant Butter</option>
+              <option value="Nasi Goreng Signature">Nasi Goreng Signature</option>
+              <option value="Umum / Tidak Menyebut Menu">Umum / Tidak Menyebut Menu</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              id="resetFiltersBtn"
+              class="py-2.5 px-3 rounded-xl border-[1.5px] border-[#231712] bg-[#FAF9F6] hover:bg-[#231712]/5 text-xs font-bold text-[#231712] transition cursor-pointer"
+            >
+              Reset Filter
+            </button>
+            <button
+              type="button"
+              id="applyFiltersBtn"
+              class="py-2.5 px-3 rounded-xl bg-[#231712] text-[#FAF9F6] hover:bg-[#231712]/90 text-xs font-bold transition cursor-pointer"
+            >
+              Terapkan Filter
+            </button>
+          </div>
+        </div>
+
+        <hr class="border-[#231712]/15" />
+
+        <div class="space-y-2.5">
+          <span class="block text-[11px] font-extrabold uppercase tracking-wider text-[#231712]/70">
+            Menu Aksi &amp; Admin
+          </span>
+
+          <button
+            type="button"
+            id="openManualModalBtn"
+            class="w-full py-2.5 px-3.5 rounded-xl bg-[#231712] text-[#FAF9F6] text-xs font-bold hover:bg-[#231712]/90 transition flex items-center gap-2 cursor-pointer"
+          >
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>+ Input Ulasan Manual</span>
+          </button>
+
+          <button
+            type="button"
+            id="exportCsvBtn"
+            class="w-full py-2.5 px-3.5 rounded-xl border-[1.5px] border-[#231712] bg-[#FAF9F6] hover:bg-[#231712]/5 text-xs font-bold text-[#231712] transition flex items-center gap-2 cursor-pointer"
+          >
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span>Ekspor CSV</span>
+          </button>
+
+          <button
+            type="button"
+            id="exportPdfBtn"
+            class="w-full py-2.5 px-3.5 rounded-xl border-[1.5px] border-[#231712] bg-[#FAF9F6] hover:bg-[#231712]/5 text-xs font-bold text-[#231712] transition flex items-center gap-2 cursor-pointer"
+          >
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <span>Ekspor PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-[#231712]/20">
+        <button
+          type="button"
+          id="logoutBtn"
+          class="w-full py-2.5 px-3.5 rounded-xl border border-[#231712]/35 bg-[#FAF9F6] hover:bg-[#231712] hover:text-[#FAF9F6] text-xs font-bold text-[#231712] transition flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span>Keluar</span>
+        </button>
+      </div>
+    </aside>
+
+    <div class="flex-1 min-w-0 flex flex-col">
+
+      <header class="sticky top-0 z-30 bg-[#FAF9F6]/95 backdrop-blur border-b border-[#231712]/20">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <button
+              type="button"
+              id="mobileOpenSidebarBtn"
+              class="lg:hidden px-3 py-2 rounded-xl bg-[#231712] text-[#FAF9F6] text-xs font-bold flex items-center gap-1.5 shrink-0 active:scale-[0.98] transition cursor-pointer"
+            >
+              <span>☰ Filter &amp; Menu</span>
+              <span id="mobileActiveFilterBadge" class="hidden px-1.5 py-0.2 rounded-full bg-[#FAF9F6] text-[#231712] text-[10px] font-extrabold">
+                0
+              </span>
+            </button>
+
+            <button
+              type="button"
+              id="desktopToggleSidebarBtn"
+              class="hidden lg:inline-flex px-3 py-2 rounded-xl border-[1.5px] border-[#231712] bg-[#FAF9F6] hover:bg-[#231712]/5 text-xs font-bold text-[#231712] items-center gap-1.5 shrink-0 transition cursor-pointer"
+            >
+              <span id="desktopSidebarToggleText">◧ Sembunyikan Sidebar</span>
+            </button>
+
+            <div class="min-w-0">
+              <h1 class="text-sm sm:text-base font-extrabold tracking-tight text-[#231712] truncate">
+                Harapan Djaja — Gunung Anyar
+              </h1>
+              <p id="greetingText" class="text-[11px] sm:text-xs font-medium text-[#231712]/75 truncate">
+                Halo
+              </p>
+            </div>
+          </div>
+
+          <div class="hidden sm:flex items-center gap-2 shrink-0">
+            <span id="topBarCountBadge" class="px-3 py-1.5 rounded-xl bg-[#231712]/5 border border-[#231712]/20 text-xs font-bold text-[#231712]">
+              0 ulasan ditampilkan
+            </span>
+          </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 pb-2.5">
+          <nav class="grid grid-cols-3 gap-1.5 sm:gap-2.5" aria-label="Navigasi Tab Dashboard">
+            <button
+              type="button"
+              data-tab="tab1"
+              class="tab-btn py-2.5 px-2 sm:px-4 rounded-xl text-[11px] sm:text-xs md:text-sm font-bold text-center transition cursor-pointer bg-[#231712] text-[#FAF9F6]"
+            >
+              Ringkasan &amp; Saran
+            </button>
+            <button
+              type="button"
+              data-tab="tab2"
+              class="tab-btn py-2.5 px-2 sm:px-4 rounded-xl text-[11px] sm:text-xs md:text-sm font-bold text-center transition cursor-pointer bg-[#FAF9F6] text-[#231712] border-[1.5px] border-[#231712]/25 hover:border-[#231712]"
+            >
+              Analisis Grafik &amp; Demografi
+            </button>
+            <button
+              type="button"
+              data-tab="tab3"
+              class="tab-btn py-2.5 px-2 sm:px-4 rounded-xl text-[11px] sm:text-xs md:text-sm font-bold text-center transition cursor-pointer bg-[#FAF9F6] text-[#231712] border-[1.5px] border-[#231712]/25 hover:border-[#231712]"
+            >
+              Semua Ulasan &amp; Pengaturan
+            </button>
+          </nav>
+        </div>
+      </header>
+
+      <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-5 sm:py-6">
+
+        <div id="dataModeBanner" class="mb-5 p-3 rounded-xl border-[1.5px] border-dashed border-[#231712] bg-[#231712]/5 text-xs text-[#231712]">
+          <strong>Data contoh.</strong> <span id="dataModeText"></span>
+        </div>
+
+        <section id="tab1" class="tab-panel space-y-6">
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3.5 sm:gap-4">
+
+            <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 flex flex-col justify-between">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-bold text-[#231712]/75">Total Ulasan &amp; Puas</span>
+                <span id="kpiTotalTrend" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712] text-[#FAF9F6]">
+                  ▲ +12%
+                </span>
+              </div>
+              <div class="mt-3">
+                <div class="flex items-baseline gap-2">
+                  <span id="kpiTotalCount" class="text-2xl sm:text-3xl font-extrabold text-[#231712]">0</span>
+                  <span class="text-xs font-semibold text-[#231712]/70">ulasan</span>
+                </div>
+                <p class="mt-1 text-xs font-bold text-[#231712]">
+                  <span id="kpiSatisfiedPct">0%</span> Pelanggan Puas
+                </p>
+              </div>
+            </div>
+
+            <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 flex flex-col justify-between">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-bold text-[#231712]/75">Negatif Belum Ditanggapi</span>
+                <span id="kpiNegTrend" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold border-[1.5px] border-[#231712] text-[#231712]">
+                  ▼ -1
+                </span>
+              </div>
+              <div class="mt-3">
+                <div class="flex items-baseline gap-2">
+                  <span id="kpiUnrespondedNeg" class="text-2xl sm:text-3xl font-extrabold text-[#231712]">0</span>
+                  <span class="text-xs font-semibold text-[#231712]/70">perlu respons</span>
+                </div>
+                <p class="mt-1 text-xs text-[#231712]/75">
+                  Dari <strong id="kpiTotalNeg">0</strong> ulasan tidak puas
+                </p>
+              </div>
+            </div>
+
+            <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 flex flex-col justify-between">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-bold text-[#231712]/75">Saran Tindakan</span>
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712]/10 text-[#231712]">
+                  Aksi Cabang
+                </span>
+              </div>
+              <div class="mt-3">
+                <div class="flex items-baseline gap-2">
+                  <span id="kpiActiveSugCount" class="text-2xl sm:text-3xl font-extrabold text-[#231712]">0</span>
+                  <span class="text-xs font-bold text-[#231712]">Aktif</span>
+                  <span class="text-[#231712]/35">|</span>
+                  <span id="kpiDoneSugCount" class="text-xl font-extrabold text-[#231712]/80">0</span>
+                  <span class="text-xs font-semibold text-[#231712]/75">Selesai</span>
+                </div>
+                <p class="mt-1 text-xs text-[#231712]/75">
+                  Rekomendasi berbasis keluhan
+                </p>
+              </div>
+            </div>
+
+            <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 flex flex-col justify-between">
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <span class="text-xs font-bold text-[#231712]/75">Rata-rata Bintang Aspek</span>
+                <span class="text-[10px] font-bold text-[#231712]/65">1.0–5.0</span>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5 text-xs">
+                <div class="px-2 py-1 rounded-lg bg-[#231712]/5 flex items-center justify-between">
+                  <span class="text-[#231712]/75">Rasa</span>
+                  <strong id="aspectRasaVal" class="text-[#231712]">0.0★</strong>
+                </div>
+                <div class="px-2 py-1 rounded-lg bg-[#231712]/5 flex items-center justify-between">
+                  <span class="text-[#231712]/75">Harga</span>
+                  <strong id="aspectHargaVal" class="text-[#231712]">0.0★</strong>
+                </div>
+                <div class="px-2 py-1 rounded-lg bg-[#231712]/5 flex items-center justify-between">
+                  <span class="text-[#231712]/75">Layanan</span>
+                  <strong id="aspectPelayananVal" class="text-[#231712]">0.0★</strong>
+                </div>
+                <div class="px-2 py-1 rounded-lg bg-[#231712]/5 flex items-center justify-between">
+                  <span class="text-[#231712]/75">Tempat</span>
+                  <strong id="aspectTempatVal" class="text-[#231712]">0.0★</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="sm:col-span-2 xl:col-span-1 bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 flex flex-col justify-between">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-bold text-[#231712]/75">Kepuasan vs Lalu</span>
+                <span id="kpiSatisfactionDiffBadge" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-[#231712] text-[#FAF9F6]">
+                  ▲ +4.2% poin
+                </span>
+              </div>
+              <div class="mt-3">
+                <div class="flex items-baseline gap-2">
+                  <span id="kpiCurrentScore" class="text-2xl sm:text-3xl font-extrabold text-[#231712]">0%</span>
+                  <span class="text-xs text-[#231712]/70">vs <strong id="kpiPrevScore">0%</strong></span>
+                </div>
+                <p class="mt-1 text-xs text-[#231712]/75">
+                  Perbandingan periode sebelumnya
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <div class="lg:col-span-7 space-y-6">
+
+              <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-[#231712]/15">
+                  <div>
+                    <h2 class="text-base font-extrabold text-[#231712]">Saran Tindakan Aktif</h2>
+                    <p class="text-xs text-[#231712]/75 mt-0.5">
+                      Rekomendasi langkah perbaikan sederhana berdasarkan keluhan pelanggan
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <label for="suggestionInterval" class="text-xs font-bold text-[#231712]/75">Interval Saran:</label>
+                    <select id="suggestionInterval" class="px-3 py-1.5 text-xs font-bold bg-[#FAF9F6] border-[1.5px] border-[#231712] rounded-xl text-[#231712] focus:outline-none">
+                      <option value="Mingguan" selected>Mingguan</option>
+                      <option value="2 Mingguan">2 Mingguan</option>
+                      <option value="3 Mingguan">3 Mingguan</option>
+                      <option value="Bulanan">Bulanan</option>
+                      <option value="Tahunan">Tahunan</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div id="activeSuggestionsList" class="mt-4 space-y-3.5">
+                </div>
+              </div>
+
+              <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-[#231712]/15">
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h2 class="text-base font-extrabold text-[#231712]">Ulasan Negatif Terbaru</h2>
+                      <span id="negListBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#231712] text-[#FAF9F6]">
+                        0 ulasan
+                      </span>
+                    </div>
+                    <p class="text-xs text-[#231712]/75 mt-0.5">
+                      Ulasan tidak puas ditandai otomatis agar segera ditanggapi Kepala Cabang
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    data-action="switch-tab"
+                    data-target="tab3"
+                    class="text-xs font-bold underline text-[#231712] hover:opacity-75 self-start sm:self-auto cursor-pointer"
+                  >
+                    Lihat semua ulasan →
+                  </button>
+                </div>
+
+                <div id="recentNegativeList" class="mt-4 space-y-3">
+                </div>
+              </div>
+
+            </div>
+
+            <div class="lg:col-span-5 space-y-6">
+
+              <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+                <div class="mb-3">
+                  <h2 class="text-base font-extrabold text-[#231712]">Tren Puas vs Tidak Puas</h2>
+                  <p class="text-xs text-[#231712]/75 mt-0.5">
+                    Perbandingan jumlah ulasan puas dan tidak puas dari waktu ke waktu
+                  </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-4 mb-3 text-xs font-bold text-[#231712]">
+                  <span class="inline-flex items-center gap-2">
+                    <span class="w-6 h-0.5 bg-[#231712] inline-block"></span>
+                    Puas (Garis Penuh)
+                  </span>
+                  <span class="inline-flex items-center gap-2">
+                    <span class="w-6 border-t-2 border-dashed border-[#231712] inline-block"></span>
+                    Tidak Puas (Putus-putus)
+                  </span>
+                </div>
+                <div id="svgSentimentTrendContainer" class="w-full">
+                </div>
+              </div>
+
+              <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+                <div class="mb-3">
+                  <h2 class="text-base font-extrabold text-[#231712]">Keluhan per Topik</h2>
+                  <p class="text-xs text-[#231712]/75 mt-0.5">
+                    Distribusi keluhan pada aspek Rasa, Harga, Pelayanan, dan Tempat
+                  </p>
+                </div>
+                <div id="svgComplaintsByTopicContainer" class="w-full">
+                </div>
+                <div id="topComplaintCallout" class="mt-3 p-3 rounded-xl bg-[#231712]/5 border border-[#231712]/20 text-xs text-[#231712]">
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+        <section id="tab2" class="tab-panel hidden space-y-6">
+          <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <h2 class="text-base font-extrabold text-[#231712]">Analisis Grafik &amp; Demografi Pelanggan</h2>
+              <p class="text-xs text-[#231712]/75">
+                Pendalaman distribusi bintang, perbandingan menu, bukti evaluasi Minggu 11, serta profil Gender &amp; Umur dari Form QR (opsional).
+              </p>
+            </div>
+            <span class="text-[11px] font-bold px-3 py-1 rounded-full bg-[#231712] text-[#FAF9F6] self-start sm:self-auto">
+              8 Grafik Analitik
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+              <div class="mb-4">
+                <h3 class="text-sm sm:text-base font-extrabold text-[#231712]">1. Distribusi Bintang 1 sampai 5</h3>
+                <p class="text-xs text-[#231712]/75 mt-0.5">
+                  Sebaran skor dari 5★ hingga 1★ (gabungan rata-rata 4 aspek QR &amp; bintang manual)
+                </p>
+              </div>
+              <div id="chartStarDistribution" class="space-y-3"></div>
+            </div>
+
+            <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+              <div class="mb-4">
+                <h3 class="text-sm sm:text-base font-extrabold text-[#231712]">2. Asal Ulasan</h3>
+                <p class="text-xs text-[#231712]/75 mt-0.5">
+                  Perbandingan kanal QR Meja dengan ulasan publik Google Maps &amp; Media Sosial
+                </p>
+              </div>
+              <div id="chartReviewSource" class="w-full"></div>
+            </div>
+
+            <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+              <div class="mb-4">
+                <h3 class="text-sm sm:text-base font-extrabold text-[#231712]">3. Tren Keluhan per Topik</h3>
+                <p class="text-xs text-[#231712]/75 mt-0.5">
+                  Perbandingan jumlah keluhan periode lalu vs periode ini (Membaik ▼ / Memburuk ▲)
+                </p>
+              </div>
+              <div id="chartTopicTrend" class="space-y-3.5"></div>
+            </div>
+
+            <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+              <div class="mb-3">
+                <h3 class="text-sm sm:text-base font-extrabold text-[#231712]">4. Menu Paling Sering Dipuji vs Dikeluhkan</h3>
+                <p class="text-xs text-[#231712]/75 mt-0.5">
+                  Ekstraksi nama menu otomatis oleh AI dari kolom komentar bebas
+                </p>
+              </div>
+              <div class="flex items-center gap-4 mb-3 text-xs font-bold text-[#231712]">
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="w-3.5 h-3.5 rounded bg-[#231712] inline-block"></span>
+                  Dipuji (Puas)
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="w-3.5 h-3.5 rounded bg-espresso-hatch border border-[#231712] inline-block"></span>
+                  Dikeluhkan (Tidak Puas)
+                </span>
+              </div>
+              <div id="chartMenuSentiment" class="space-y-3"></div>
+            </div>
+
+            <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+              <div class="mb-4">
+                <h3 class="text-sm sm:text-base font-extrabold text-[#231712]">5. Kata Kunci Keluhan Berulang</h3>
+                <p class="text-xs text-[#231712]/75 mt-0.5">
+                  Kata atau frasa keluhan yang paling sering disebut pelanggan dalam ulasan
+                </p>
+              </div>
+              <div id="chartRecurringKeywords" class="space-y-3"></div>
+            </div>
+
+            <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+              <div class="flex items-start justify-between gap-2 mb-3">
+                <div>
+                  <h3 class="text-sm sm:text-base font-extrabold text-[#231712]">6. Sebelum vs Sesudah Saran Dilaksanakan</h3>
+                  <p class="text-xs text-[#231712]/75 mt-0.5">
+                    Bukti penurunan keluhan setelah tindakan perbaikan dijalankan kepala cabang
+                  </p>
+                </div>
+                <span class="shrink-0 px-2.5 py-0.5 rounded-full bg-[#231712] text-[#FAF9F6] text-[10px] font-bold">
+                  Evaluasi Minggu 11
+                </span>
+              </div>
+              <div id="chartBeforeAfter" class="w-full"></div>
+              <p class="mt-3 p-3 rounded-xl bg-[#231712]/5 border border-[#231712]/20 text-xs text-[#231712]">
+                <strong>Bukti Manfaat:</strong> Setelah pemasangan panduan QRIS kasir &amp; penggantian es batu kristal padat, keluhan Pelayanan turun <strong>58%</strong> dan keluhan Rasa es encer turun <strong>50%</strong>.
+              </p>
+            </div>
+
+            <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+              <div class="mb-4">
+                <h3 class="text-sm sm:text-base font-extrabold text-[#231712]">7. Demografi Gender (Form QR, opsional)</h3>
+                <p class="text-xs text-[#231712]/75 mt-0.5">
+                  Proporsi responden Laki-laki &amp; Perempuan dari Form QR (Non-QR otomatis 0 saat filter QR aktif)
+                </p>
+              </div>
+              <div id="chartGender" class="w-full"></div>
+            </div>
+
+            <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+              <div class="mb-4">
+                <h3 class="text-sm sm:text-base font-extrabold text-[#231712]">8. Demografi Kelompok Umur (Form QR, opsional)</h3>
+                <p class="text-xs text-[#231712]/75 mt-0.5">
+                  Sebaran usia pengunjung cabang Gunung Anyar yang mengisi Form QR di meja
+                </p>
+              </div>
+              <div id="chartAgeGroup" class="space-y-3"></div>
+            </div>
+
+          </div>
+        </section>
+
+        <section id="tab3" class="tab-panel hidden space-y-6">
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <div class="lg:col-span-5 bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between gap-2 pb-3 border-b border-[#231712]/15">
+                  <h2 class="text-base font-extrabold text-[#231712]">Pengaturan Ambang Munculnya Saran</h2>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-[#231712] text-[#FAF9F6]">Admin</span>
+                </div>
+                <p class="text-xs text-[#231712]/75 mt-3 leading-relaxed">
+                  Atur jumlah minimal keluhan baru pada topik yang sama agar sistem memunculkan kembali saran tindakan untuk Kepala Cabang.
+                </p>
+
+                <div class="mt-4 p-4 rounded-xl bg-[#231712]/5 border border-[#231712]/20 space-y-3">
+                  <div class="flex items-center justify-between">
+                    <label for="thresholdSlider" class="text-xs font-bold text-[#231712]">
+                      Batas Keluhan Baru:
+                    </label>
+                    <div class="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        id="thresholdNumberInput"
+                        min="2"
+                        max="25"
+                        value="5"
+                        class="w-16 px-2 py-1 text-center text-sm font-extrabold bg-[#FAF9F6] border-[1.5px] border-[#231712] rounded-lg text-[#231712]"
+                      />
+                      <span class="text-xs font-semibold text-[#231712]/75">keluhan</span>
+                    </div>
+                  </div>
+
+                  <input
+                    type="range"
+                    id="thresholdSlider"
+                    min="2"
+                    max="25"
+                    value="5"
+                    class="w-full"
+                  />
+
+                  <div class="flex justify-between text-[10px] font-semibold text-[#231712]/65">
+                    <span>2 (Sangat Sensitif)</span>
+                    <span>5 (Default)</span>
+                    <span>25 (Volume Tinggi)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-4 border-t border-[#231712]/15 flex items-center justify-between gap-3">
+                <span class="text-xs text-[#231712]/75">
+                  Ambang aktif: <strong id="currentThresholdLabel" class="text-[#231712]">5 keluhan baru</strong>
+                </span>
+                <button
+                  type="button"
+                  id="saveThresholdBtn"
+                  class="px-4 py-2 rounded-xl bg-[#231712] text-[#FAF9F6] text-xs font-bold hover:bg-[#231712]/90 transition cursor-pointer"
+                >
+                  Simpan Ambang
+                </button>
+              </div>
+            </div>
+
+            <div class="lg:col-span-7 bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+              <div class="flex items-center justify-between gap-2 pb-3 border-b border-[#231712]/15">
+                <div>
+                  <h2 class="text-base font-extrabold text-[#231712]">Riwayat Saran yang Sudah Dilaksanakan</h2>
+                  <p class="text-xs text-[#231712]/75 mt-0.5">
+                    Rekam jejak keputusan perbaikan cabang beserta catatan tindakan nyata
+                  </p>
+                </div>
+                <span id="completedHistoryBadge" class="px-2.5 py-1 rounded-full text-xs font-bold border-[1.5px] border-[#231712] text-[#231712]">
+                  0 selesai
+                </span>
+              </div>
+
+              <div id="completedSuggestionsList" class="mt-4 space-y-3 max-h-72 overflow-y-auto pr-1">
+              </div>
+            </div>
+
+          </div>
+
+          <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 pb-4 border-b border-[#231712]/15">
+              <div>
+                <h2 class="text-base font-extrabold text-[#231712]">Daftar Semua Ulasan</h2>
+                <p class="text-xs text-[#231712]/75 mt-0.5">
+                  Menampilkan rincian 4 bintang aspek + demografi untuk sumber QR, serta bintang umum untuk sumber Manual
+                </p>
+              </div>
+
+              <div class="flex flex-col sm:flex-row gap-2.5 w-full lg:w-auto">
+                <div class="relative flex-1 sm:w-64">
+                  <input
+                    type="text"
+                    id="reviewSearchInput"
+                    placeholder="Cari teks komentar, menu, topik..."
+                    class="w-full pl-9 pr-3.5 py-2 text-xs font-medium bg-[#FAF9F6] border border-[#231712]/35 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]"
+                  />
+                  <svg class="w-4 h-4 text-[#231712]/55 absolute left-3 top-2.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+                  </svg>
+                </div>
+
+                <select id="reviewStatusFilter" class="px-3 py-2 text-xs font-bold bg-[#FAF9F6] border border-[#231712]/35 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]">
+                  <option value="ALL">Status: Semua</option>
+                  <option value="Belum Ditanggapi">Belum Ditanggapi</option>
+                  <option value="Sudah Ditanggapi">Sudah Ditanggapi</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="allReviewsContainer" class="mt-4 space-y-3">
+            </div>
+          </div>
+
+        </section>
+
+      </main>
+
+      <footer class="border-t border-[#231712]/15 bg-[#FAF9F6] py-4 px-4 sm:px-6 text-xs text-[#231712]/70">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>Voice of Customer (VoC) — Kedai Harapan Djaja Signature, Cabang Gunung Anyar</span>
+          <span>Standar Mutu ISO/IEC 25010 &amp; Privasi UU PDP No. 27/2022</span>
+        </div>
+      </footer>
+
+    </div>
+  </div>
+
+  <div id="manualReviewModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-[#231712]/55 backdrop-blur-[1px]">
+    <div class="bg-[#FAF9F6] border-2 border-[#231712] rounded-2xl w-full max-w-lg p-5 sm:p-6 shadow-xl">
+      <div class="flex items-center justify-between pb-3 border-b border-[#231712]/20">
+        <div>
+          <h3 class="text-base font-extrabold text-[#231712]">Input Ulasan Manual</h3>
+          <p class="text-xs text-[#231712]/75">Tambahkan ulasan dari Google Maps atau Media Sosial untuk dianalisis AI</p>
+        </div>
+        <button type="button" id="closeManualModalBtn" class="px-2.5 py-1 rounded-lg border border-[#231712]/30 text-xs font-bold text-[#231712] hover:bg-[#231712] hover:text-[#FAF9F6] cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <form id="manualReviewForm" class="mt-4 space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label for="manualSource" class="block text-xs font-bold text-[#231712] mb-1">Sumber Platform</label>
+            <select id="manualSource" class="w-full px-3 py-2 text-xs font-semibold bg-[#FAF9F6] border border-[#231712]/35 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]">
+              <option value="Google Maps">Google Maps</option>
+              <option value="Media Sosial">Media Sosial</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="manualDate" class="block text-xs font-bold text-[#231712] mb-1">Tanggal Ulasan</label>
+            <input
+              type="date"
+              id="manualDate"
+              class="w-full px-3 py-2 text-xs font-semibold bg-[#FAF9F6] border border-[#231712]/35 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-xs font-bold text-[#231712] mb-1">Bintang (1–5)</label>
+            <div id="starSelectorGroup" class="flex items-center gap-1.5">
+              <button type="button" data-star="1" class="star-choice w-9 h-9 rounded-xl border-[1.5px] border-[#231712] bg-[#FAF9F6] text-[#231712] text-xs font-bold transition cursor-pointer">1★</button>
+              <button type="button" data-star="2" class="star-choice w-9 h-9 rounded-xl border-[1.5px] border-[#231712] bg-[#FAF9F6] text-[#231712] text-xs font-bold transition cursor-pointer">2★</button>
+              <button type="button" data-star="3" class="star-choice w-9 h-9 rounded-xl border-[1.5px] border-[#231712] bg-[#FAF9F6] text-[#231712] text-xs font-bold transition cursor-pointer">3★</button>
+              <button type="button" data-star="4" class="star-choice w-9 h-9 rounded-xl border-[1.5px] border-[#231712] bg-[#FAF9F6] text-[#231712] text-xs font-bold transition cursor-pointer">4★</button>
+              <button type="button" data-star="5" class="star-choice w-9 h-9 rounded-xl border-[1.5px] border-[#231712] bg-[#231712] text-[#FAF9F6] text-xs font-bold transition cursor-pointer">5★</button>
+            </div>
+            <input type="hidden" id="manualRatingValue" value="5" />
+          </div>
+
+          <div>
+            <label for="manualTopic" class="block text-xs font-bold text-[#231712] mb-1">Topik Utama</label>
+            <select id="manualTopic" class="w-full px-3 py-2 text-xs font-semibold bg-[#FAF9F6] border border-[#231712]/35 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]">
+              <option value="Rasa">Rasa</option>
+              <option value="Harga">Harga</option>
+              <option value="Pelayanan">Pelayanan</option>
+              <option value="Tempat">Tempat</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="manualComment" class="block text-xs font-bold text-[#231712] mb-1">Teks Ulasan</label>
+          <textarea
+            id="manualComment"
+            rows="3"
+            minlength="3"
+            maxlength="2000"
+            required
+            placeholder="Contoh: Kopi Susu Djaja terlalu manis hari ini dan antre cukup lama saat jam pulang kerja..."
+            class="w-full px-3.5 py-2.5 text-xs font-medium bg-[#FAF9F6] border border-[#231712]/35 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]"
+          ></textarea>
+          <p class="mt-1 text-[11px] text-[#231712]/70">
+            Simulasi AI otomatis menentukan sentimen (Puas ≥ 4★, Tidak Puas ≤ 3★) dan mendeteksi nama menu dari teks ulasan.
+          </p>
+        </div>
+
+        <div class="pt-3 border-t border-[#231712]/15 flex items-center justify-end gap-2">
+          <button type="button" id="cancelManualModalBtn" class="px-4 py-2 rounded-xl border-[1.5px] border-[#231712] bg-[#FAF9F6] text-xs font-bold text-[#231712] cursor-pointer">
+            Batal
+          </button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-[#231712] text-[#FAF9F6] text-xs font-bold hover:bg-[#231712]/90 cursor-pointer">
+            Simpan &amp; Analisis AI
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="pdfPreviewModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-[#231712]/55 backdrop-blur-[1px]">
+    <div class="bg-[#FAF9F6] border-2 border-[#231712] rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-xl">
+      <div class="px-5 py-4 border-b border-[#231712]/20 flex items-center justify-between gap-2 no-print">
+        <div>
+          <h3 class="text-base font-extrabold text-[#231712]">Pratinjau Laporan Ringkasan (PDF)</h3>
+          <p class="text-xs text-[#231712]/75">Siap dicetak atau disimpan ke PDF untuk evaluasi cabang &amp; manajemen pusat</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            id="printPdfBtn"
+            class="px-4 py-2 rounded-xl bg-[#231712] text-[#FAF9F6] text-xs font-bold hover:bg-[#231712]/90 cursor-pointer"
+          >
+            Cetak / Simpan PDF
+          </button>
+          <button type="button" id="closePdfModalBtn" class="px-3 py-2 rounded-xl border-[1.5px] border-[#231712] text-xs font-bold text-[#231712] cursor-pointer">
+            Tutup
+          </button>
+        </div>
+      </div>
+
+      <div id="pdfPrintArea" class="p-6 sm:p-8 overflow-y-auto space-y-6 bg-[#FAF9F6] text-[#231712]">
+        <div class="border-b-2 border-[#231712] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+          <div>
+            <p class="text-[11px] font-extrabold uppercase tracking-wider text-[#231712]/70">Laporan Voice of Customer</p>
+            <h2 class="text-xl font-extrabold text-[#231712]">Kedai Harapan Djaja Signature — Cabang Gunung Anyar</h2>
+            <p class="text-xs text-[#231712]/75">Jl. Gunung Anyar, Surabaya</p>
+          </div>
+          <div class="text-xs sm:text-right">
+            <p class="font-bold">Tanggal Cetak: <span id="pdfPrintDate"></span></p>
+            <p id="pdfFilterSubtitle" class="text-[#231712]/75">Periode: 1 Minggu</p>
+          </div>
+        </div>
+
+        <div id="pdfSummaryGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+
+        <div>
+          <h4 class="text-xs font-extrabold uppercase tracking-wider border-b border-[#231712]/30 pb-1.5 mb-3">
+            Saran Tindakan Aktif Cabang
+          </h4>
+          <div id="pdfSuggestionsList" class="space-y-2 text-xs"></div>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-extrabold uppercase tracking-wider border-b border-[#231712]/30 pb-1.5 mb-3">
+            Sorotan Ulasan Negatif Terbaru
+          </h4>
+          <div id="pdfNegativeList" class="space-y-2 text-xs"></div>
+        </div>
+
+        <div class="pt-6 border-t border-[#231712]/20 flex justify-between text-xs text-[#231712]/75">
+          <span>Dicetak oleh: <span id="pdfPrintedBy"></span></span>
+          <span>Sistem VoC — Harapan Djaja Signature</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

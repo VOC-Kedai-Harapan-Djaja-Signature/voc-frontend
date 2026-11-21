@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #FAF9F6;
+  color: #231712;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF9F6;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(35, 23, 18, 0.28);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(35, 23, 18, 0.55);
+}
+
+.bg-espresso-hatch {
+  background-color: #FAF9F6;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(35, 23, 18, 0.1),
+    rgba(35, 23, 18, 0.1) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  background: rgba(35, 23, 18, 0.18);
+  border-radius: 999px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 999px;
+  background: #231712;
+  margin-top: -6px;
+  border: 2px solid #FAF9F6;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #pdfPrintArea,
+  #pdfPrintArea * {
+    visibility: visible;
+  }
+  #pdfPrintArea {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #FAF9F6 !important;
+    color: #231712 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
