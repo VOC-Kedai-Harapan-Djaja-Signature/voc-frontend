@@ -93,7 +93,7 @@ async function apiFetch(path, options = {}) {
   if (session.token) headers.Authorization = `Bearer ${session.token}`;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs || 15000);
   let res;
   try {
     res = await fetch(`${VOC_API}${path}`, { ...options, headers, signal: controller.signal });
@@ -170,6 +170,17 @@ function applySettings(settings) {
   });
 }
 
+const kapital = (teks) => (teks ? teks.charAt(0).toUpperCase() + teks.slice(1) : '–');
+
+async function apiFetchOptional(path) {
+  try {
+    return await apiFetch(path);
+  } catch (err) {
+    if (err.status === 404) return null;
+    throw err;
+  }
+}
+
 async function loadDashboardData() {
   appState.activeSuggestions = [];
   appState.completedSuggestions = [];
@@ -195,10 +206,14 @@ async function loadDashboardData() {
   if (!appState.isLoggedIn) return; // sudah logout saat data masih dimuat
   appState.reviews = semua.map(fromApi);
 
-  // 2. Pengaturan (data pelengkap). Kalau gagal, ulasan di atas tetap tampil.
-  const pengaturan = await apiFetch('/settings');
+  // 2. Data pelengkap: pengaturan dan laporan AI terbaru. Kalau gagal, ulasan di atas tetap tampil.
+  const [pengaturan, laporan] = await Promise.all([
+    apiFetch('/settings'),
+    apiFetchOptional('/reports/weekly/latest')
+  ]);
   if (!appState.isLoggedIn) return;
   applySettings(pengaturan);
+  appState.latestReport = laporan;
 }
 
 async function showDashboard() {
@@ -1004,7 +1019,7 @@ function renderTab2Analytics(filtered) {
   }).join('');
 
   // Kata kunci keluhan berulang & evaluasi sebelum/sesudah saran belum punya sumber data.
-  document.getElementById('chartRecurringKeywords').innerHTML = emptyStateHtml('Belum ada data', AI_PENDING_TEXT);
+  renderRecurringKeywords();
   document.getElementById('chartBeforeAfter').innerHTML = emptyStateHtml('Belum ada data', AI_PENDING_TEXT);
 
   const isQrOnly = appState.filters.source === 'QR';
@@ -1073,6 +1088,35 @@ function renderTab2Analytics(filtered) {
       </div>
     `;
   }).join('');
+}
+
+// Grafik 5: kata kunci keluhan dari laporan AI terbaru (tidak ikut filter sidebar).
+function renderRecurringKeywords() {
+  const el = document.getElementById('chartRecurringKeywords');
+  const laporan = appState.latestReport;
+  const kataKunci = laporan && Array.isArray(laporan.keywords) ? laporan.keywords : [];
+  if (kataKunci.length === 0) {
+    el.innerHTML = emptyStateHtml('Belum ada data', laporan
+      ? 'Laporan AI terbaru belum menemukan kata keluhan yang berulang.'
+      : 'Klik "Jalankan Analisis AI" di sidebar untuk membuat laporan.');
+    return;
+  }
+
+  const maks = Math.max(...kataKunci.map((k) => k.jumlah), 1);
+  el.innerHTML = `
+    <p class="text-[11px] text-[#231712]/70">Dari laporan AI ${esc(laporan.period_start)} s.d. ${esc(laporan.period_end)}</p>
+    ${kataKunci.map((k) => `
+      <div>
+        <div class="flex items-center justify-between text-xs font-bold mb-1">
+          <span>"${esc(k.kata)}" <span class="font-semibold text-[#231712]/70">• ${esc(kapital(k.topik))}</span></span>
+          <span>${esc(k.jumlah)} ulasan</span>
+        </div>
+        <div class="w-full h-3 rounded-full bg-[#231712]/10 overflow-hidden">
+          <div class="h-full rounded-full bg-[#231712]" style="width: ${Math.round((k.jumlah / maks) * 100)}%"></div>
+        </div>
+      </div>
+    `).join('')}
+  `;
 }
 
 function renderTab3(filtered) {
@@ -1538,6 +1582,31 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`Ulasan ${source} tersimpan di database (id ${savedId}).`);
   });
 
+    // Analisis AI: kirim ulasan 7 hari terakhir ke AI lewat backend.
+  document.getElementById('runAiReportBtn').addEventListener('click', async () => {
+    closeMobileSidebar();
+    if (PROTOTIPE) {
+      showToast('Mode prototipe: analisis AI butuh API.');
+      return;
+    }
+    const btn = document.getElementById('runAiReportBtn');
+    const label = document.getElementById('runAiReportText');
+    btn.disabled = true;
+    label.textContent = 'Menganalisis... (bisa 1–2 menit)';
+    try {
+      const hasil = await apiFetch('/reports/weekly', { method: 'POST', body: '{}', timeoutMs: 300000 });
+      await loadDashboardData();
+      if (!appState.isLoggedIn) return;
+      refreshAllViews();
+      showToast(`Analisis selesai: ${hasil.analyzed_reviews} ulasan dinilai AI, ${hasil.suggestions_created} saran dibuat.`);
+    } catch (err) {
+      if (err.status === 0) showToast('Analisis gagal: server tidak bisa dihubungi atau terlalu lama.');
+      else if (err.status !== 401) showToast((err.body && err.body.message) || 'Analisis AI gagal. Coba lagi.');
+    } finally {
+      btn.disabled = false;
+      label.textContent = 'Jalankan Analisis AI (7 hari)';
+    }
+  });
 
   document.getElementById('exportCsvBtn').addEventListener('click', () => {
     const filtered = getFilteredReviews();
