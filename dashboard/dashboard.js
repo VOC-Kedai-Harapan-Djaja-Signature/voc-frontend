@@ -1742,6 +1742,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const lama = document.getElementById('currentPassword').value;
+    const baru = document.getElementById('newPassword').value;
+    const ulang = document.getElementById('confirmPassword').value;
+
+    let pesan = '';
+    if (!lama || !baru || !ulang) pesan = 'Isi password lama, password baru, dan ulangi password baru.';
+    else if (baru.length < 8) pesan = 'Password baru minimal 8 karakter.';
+    else if (new TextEncoder().encode(baru).length > 72) pesan = 'Password baru terlalu panjang (maksimal 72 karakter).';
+    else if (baru !== ulang) pesan = 'Ulangi password baru belum sama.';
+    else if (baru === lama) pesan = 'Password baru harus berbeda dari password lama.';
+    else if (PROTOTIPE) pesan = 'Mode prototipe: password tidak bisa diganti.';
+    if (pesan) {
+      showToast(pesan);
+      return;
+    }
+
+    const btn = document.getElementById('changePasswordBtn');
+    btn.disabled = true;
+    try {
+      await apiFetch('/me/password', {
+        method: 'PATCH',
+        body: JSON.stringify({ current_password: lama, new_password: baru })
+      });
+      form.reset();
+      showToast('Password berhasil diganti. Pakai password baru saat login berikutnya.');
+    } catch (err) {
+      if (err.status === 0) showToast('Server tidak bisa dihubungi. Password belum diganti.');
+      else if (err.status !== 401) showToast((err.body && err.body.message) || 'Password belum diganti. Coba lagi.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   document.getElementById('exportCsvBtn').addEventListener('click', () => {
     const filtered = getFilteredReviews();
     const headers = ['ID', 'Tanggal', 'Sumber', 'Sentimen', 'Topik', 'Menu', 'RataRataBintang', 'StatusTanggapan', 'Komentar'];

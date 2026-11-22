@@ -471,9 +471,12 @@
 
           </div>
 
+
+
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
             <div class="lg:col-span-7 space-y-6">
+                 
 
               <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-[#231712]/15">
@@ -490,7 +493,6 @@
                       <option value="2 Mingguan">2 Mingguan</option>
                       <option value="3 Mingguan">3 Mingguan</option>
                       <option value="Bulanan">Bulanan</option>
-                      <option value="Tahunan">Tahunan</option>
                     </select>
                   </div>
                 </div>
@@ -759,6 +761,57 @@
               </div>
             </div>
 
+          </div>
+
+          <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
+            <div class="pb-3 border-b border-[#231712]/15">
+              <h2 class="text-base font-extrabold text-[#231712]">Ganti Password</h2>
+              <p class="text-xs text-[#231712]/75 mt-0.5">
+                Untuk akun yang sedang masuk. Password baru minimal 8 karakter.
+              </p>
+            </div>
+            <form id="changePasswordForm" class="mt-4" novalidate>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="sm:col-span-2">
+                  <label for="currentPassword" class="block text-xs font-bold text-[#231712] mb-1">Password lama</label>
+                  <input
+                    type="password"
+                    id="currentPassword"
+                    autocomplete="current-password"
+                    class="w-full px-3 py-2 text-xs font-semibold bg-[#FAF9F6] border border-[#231712]/35 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]"
+                  />
+                </div>
+                <div>
+                  <label for="newPassword" class="block text-xs font-bold text-[#231712] mb-1">Password baru</label>
+                  <input
+                    type="password"
+                    id="newPassword"
+                    autocomplete="new-password"
+                    maxlength="72"
+                    class="w-full px-3 py-2 text-xs font-semibold bg-[#FAF9F6] border border-[#231712]/35 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]"
+                  />
+                </div>
+                <div>
+                  <label for="confirmPassword" class="block text-xs font-bold text-[#231712] mb-1">Ulangi password baru</label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    autocomplete="new-password"
+                    maxlength="72"
+                    class="w-full px-3 py-2 text-xs font-semibold bg-[#FAF9F6] border border-[#231712]/35 rounded-xl text-[#231712] focus:outline-none focus:border-[#231712]"
+                  />
+                </div>
+              </div>
+              <div class="mt-4 flex justify-end">
+                <button
+                  type="submit"
+                  id="changePasswordBtn"
+                  class="px-4 py-2 rounded-xl bg-[#231712] text-[#FAF9F6] text-xs font-bold hover:bg-[#231712]/90 transition cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                >
+                  Simpan Password
+                </button>
+              </div>
+            </form>
           </div>
 
           <div class="bg-[#FAF9F6] border border-[#231712]/25 rounded-2xl p-4 sm:p-6">
