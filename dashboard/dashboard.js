@@ -181,6 +181,33 @@ async function apiFetchOptional(path) {
   }
 }
 
+const PRIORITAS_LABEL = { mendesak: 'Mendesak', sedang: 'Sedang', rendah: 'Rendah' };
+
+function tanggalLokal(waktu) {
+  const d = new Date(waktu);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
+function suggestionFromApi(s) {
+  return {
+    id: String(s.id),
+    kind: s.kind,
+    topic: kapital(s.topic),
+    priority: PRIORITAS_LABEL[s.priority] || s.priority,
+    complaintCount: s.complaint_count,
+    text: s.text,
+    reason: s.reason || '',
+    completedDate: s.completed_at ? tanggalLokal(s.completed_at) : null,
+    completedBy: s.completed_by || '',
+    note: s.completion_note || 'Tanpa catatan.'
+  };
+}
+
+function getShownSuggestions() {
+  return appState.activeSuggestions.filter((s) => s.kind === 'perbaikan' && s.complaintCount >= appState.threshold);
+}
+
 async function loadDashboardData() {
   appState.activeSuggestions = [];
   appState.completedSuggestions = [];
@@ -206,13 +233,16 @@ async function loadDashboardData() {
   if (!appState.isLoggedIn) return; // sudah logout saat data masih dimuat
   appState.reviews = semua.map(fromApi);
 
-  // 2. Data pelengkap: pengaturan dan laporan AI terbaru. Kalau gagal, ulasan di atas tetap tampil.
-  const [pengaturan, laporan] = await Promise.all([
+  const [pengaturan, aktif, selesai, laporan] = await Promise.all([
     apiFetch('/settings'),
+    apiFetch('/suggestions?status=aktif'),
+    apiFetch('/suggestions?status=selesai'),
     apiFetchOptional('/reports/weekly/latest')
   ]);
   if (!appState.isLoggedIn) return;
   applySettings(pengaturan);
+  appState.activeSuggestions = aktif.data.map(suggestionFromApi);
+  appState.completedSuggestions = selesai.data.map(suggestionFromApi);
   appState.latestReport = laporan;
 }
 
@@ -477,7 +507,7 @@ function renderSummaryCards(filtered) {
     setBadge('kpiNegTrend', '–', NEUTRAL_BADGE_CLASS);
   }
 
-  document.getElementById('kpiActiveSugCount').textContent = appState.activeSuggestions.length;
+  document.getElementById('kpiActiveSugCount').textContent = getShownSuggestions().length;
   document.getElementById('kpiDoneSugCount').textContent = appState.completedSuggestions.length;
 
   document.getElementById('aspectRasaVal').textContent = fmtAvg(aspek.Rasa);
@@ -501,18 +531,21 @@ function renderSummaryCards(filtered) {
 
 function renderActiveSuggestions() {
   const container = document.getElementById('activeSuggestionsList');
-  const items = appState.activeSuggestions.filter((s) => {
+  const items = getShownSuggestions().filter((s) => {
     if (appState.filters.topic !== 'ALL' && s.topic !== appState.filters.topic) return false;
     return true;
   });
 
   if (items.length === 0) {
+    // Saran perbaikan yang ada tapi keluhannya belum mencapai ambang (supaya tidak dikira hilang).
+    const diBawahAmbang = appState.activeSuggestions.filter((s) => s.kind === 'perbaikan').length - getShownSuggestions().length;
     container.innerHTML = `
       <div class="p-6 rounded-xl bg-[#231712]/5 border border-[#231712]/20 text-center">
         <p class="text-sm font-extrabold text-[#231712]">Tidak ada saran aktif untuk topik ini</p>
         <p class="text-xs text-[#231712]/75 mt-1">
           Saran baru akan muncul otomatis apabila tercatat ${esc(appState.threshold)} keluhan baru pada topik yang sama.
         </p>
+        ${diBawahAmbang > 0 ? `<p class="text-xs text-[#231712]/75 mt-1">${esc(diBawahAmbang)} saran dari laporan AI terbaru belum ditampilkan karena jumlah keluhannya di bawah ambang.</p>` : ''}
       </div>
     `;
     return;
@@ -1463,7 +1496,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    renderActiveSuggestions();
+    refreshAllViews();
     showToast(`Ambang munculnya saran disimpan: ${appState.threshold} keluhan baru.`);
   });
 
@@ -1670,7 +1703,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
-    document.getElementById('pdfSuggestionsList').innerHTML = appState.activeSuggestions.map((s, i) => `
+    document.getElementById('pdfSuggestionsList').innerHTML = getShownSuggestions().map((s, i) => `
       <div class="p-2.5 border border-[#231712]/25 rounded-lg">
         <strong>${i + 1}. [${esc(s.priority)} • ${esc(s.topic)}]</strong> ${esc(s.text)}
         <span class="block text-[11px] text-[#231712]/75 mt-0.5">${esc(s.reason)}</span>
