@@ -380,8 +380,6 @@ function emptyStateHtml(title, detail) {
   `;
 }
 
-const AI_PENDING_TEXT = 'Belum ada data — akan terisi setelah analisis AI tersambung.';
-
 function countActiveNonDefaultFilters() {
   let count = 0;
   if (appState.filters.period !== '1w') count++;
@@ -631,6 +629,10 @@ function renderActiveSuggestions() {
 }
 
 function toggleCompleteForm(sugId) {
+  if (!bolehUbahPengaturan()) {
+    showToast('Hanya Kepala Cabang yang dapat menandai saran selesai.');
+    return;
+  }
   const formEl = document.getElementById(`complete-form-${sugId}`);
   if (formEl) {
     formEl.classList.toggle('hidden');
@@ -641,22 +643,47 @@ function toggleCompleteForm(sugId) {
   }
 }
 
-function confirmSuggestionDone(sugId) {
-  const idx = appState.activeSuggestions.findIndex((s) => s.id === sugId);
-  if (idx === -1) return;
+async function confirmSuggestionDone(sugId) {
+  const saran = appState.activeSuggestions.find((s) => s.id === sugId);
+  if (!saran) return;
 
   const inp = document.getElementById(`note-input-${sugId}`);
-  const note = inp && inp.value.trim() ? inp.value.trim().slice(0, 300) : 'Tanpa catatan.';
+  const note = inp ? inp.value.trim().slice(0, 300) : '';
 
-  const [doneItem] = appState.activeSuggestions.splice(idx, 1);
-  appState.completedSuggestions.unshift({
-    id: 'DONE-' + Date.now(),
-    completedDate: todayISO(),
-    topic: doneItem.topic,
-    priority: doneItem.priority,
-    text: doneItem.text,
-    note
-  });
+  if (PROTOTIPE) {
+    appState.activeSuggestions = appState.activeSuggestions.filter((s) => s.id !== sugId);
+    appState.completedSuggestions.unshift({ ...saran, completedDate: todayISO(), note: note || 'Tanpa catatan.' });
+  } else {
+    const btn = document.querySelector(`[data-action="confirm-done"][data-id="${sugId}"]`);
+    if (btn) btn.disabled = true;
+    try {
+      const hasil = await apiFetch(`/suggestions/${encodeURIComponent(sugId)}/complete`, {
+        method: 'PATCH',
+        body: JSON.stringify({ note: note || null })
+      });
+      appState.activeSuggestions = appState.activeSuggestions.filter((s) => s.id !== sugId);
+      appState.completedSuggestions.unshift(suggestionFromApi(hasil));
+    } catch (err) {
+      if (btn) btn.disabled = false;
+      if (err.status === 409) {
+        // Sudah ditandai selesai sebelumnya (mis. dari HP lain): samakan tampilan dengan server.
+        appState.activeSuggestions = appState.activeSuggestions.filter((s) => s.id !== sugId);
+        try {
+          const selesai = await apiFetch('/suggestions?status=selesai');
+          appState.completedSuggestions = selesai.data.map(suggestionFromApi);
+        } catch {
+          // Riwayat akan benar lagi saat halaman dimuat ulang.
+        }
+        refreshAllViews();
+        showToast('Saran ini sudah ditandai selesai sebelumnya.');
+      } else if (err.status === 0) {
+        showToast('Server tidak bisa dihubungi. Saran belum ditandai selesai.');
+      } else if (err.status !== 401) {
+        showToast((err.body && err.body.message) || 'Saran belum tersimpan. Coba lagi.');
+      }
+      return;
+    }
+  }
 
   refreshAllViews();
   showToast('Saran berhasil ditandai selesai dan masuk ke Riwayat Saran.');
@@ -1051,9 +1078,8 @@ function renderTab2Analytics(filtered) {
     `;
   }).join('');
 
-  // Kata kunci keluhan berulang & evaluasi sebelum/sesudah saran belum punya sumber data.
   renderRecurringKeywords();
-  document.getElementById('chartBeforeAfter').innerHTML = emptyStateHtml('Belum ada data', AI_PENDING_TEXT);
+  renderBeforeAfter();
 
   const isQrOnly = appState.filters.source === 'QR';
   const genderItems = [
@@ -1152,6 +1178,81 @@ function renderRecurringKeywords() {
   `;
 }
 
+const EVALUASI_HARI = 14;
+const EVALUASI_MIN_HARI = 7; 
+
+function renderBeforeAfter() {
+  const el = document.getElementById('chartBeforeAfter');
+
+  const perTopik = new Map();
+  appState.completedSuggestions.forEach((s) => {
+    if (s.completedDate && !perTopik.has(s.topic)) perTopik.set(s.topic, s);
+  });
+
+  if (perTopik.size === 0) {
+    el.innerHTML = emptyStateHtml('Belum ada data', 'Grafik terisi setelah Kepala Cabang menandai saran "sudah dilaksanakan".');
+    return;
+  }
+
+  const today = todayNoon();
+  // Keluhan (tidak puas) pada topik tertentu, dari dariHari sampai sampaiHari yang lalu.
+  const hitungKeluhan = (topic, dariHari, sampaiHari) => appState.reviews.filter((r) => {
+    const d = daysAgo(r.date, today);
+    return r.satisfied === false && r.topic === topic && d >= dariHari && d <= sampaiHari;
+  }).length;
+
+  const kartu = [...perTopik.values()].map((s) => {
+    const k = daysAgo(s.completedDate, today); // hari sejak dilaksanakan
+    const n = Math.min(EVALUASI_HARI, Math.max(0, k));
+    const sebelum = n > 0 ? hitungKeluhan(s.topic, k + 1, k + n) : 0;
+    const sesudah = n > 0 ? hitungKeluhan(s.topic, k - n, k - 1) : 0;
+    const maks = Math.max(sebelum, sesudah, 1);
+
+    let badge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#231712]/10 text-[#231712]">Tetap</span>`;
+    if (n < EVALUASI_MIN_HARI) {
+      badge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#231712]/10 text-[#231712]">Pantau (baru ${esc(n)} hari)</span>`;
+    } else if (sesudah < sebelum) {
+      badge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#FAF9F6] border-[1.5px] border-[#231712] text-[#231712]">Turun ${esc(Math.round(((sebelum - sesudah) / sebelum) * 100))}% ▼</span>`;
+    } else if (sesudah > sebelum) {
+      badge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#231712] text-[#FAF9F6]">Naik ▲ (+${esc(sesudah - sebelum)})</span>`;
+    }
+
+    const batang = (label, nilai, isi) => `
+      <div>
+        <div class="flex items-center justify-between text-xs font-bold mb-1">
+          <span>${esc(label)}</span>
+          <span>${esc(nilai)} keluhan</span>
+        </div>
+        <div class="w-full h-3 rounded-full bg-[#231712]/10 overflow-hidden">
+          ${nilai > 0 ? `<div class="h-full rounded-full ${isi}" style="width: ${Math.round((nilai / maks) * 100)}%"></div>` : ''}
+        </div>
+      </div>
+    `;
+
+    return `
+      <div class="p-3 rounded-xl border border-[#231712]/20 bg-[#FAF9F6] space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-extrabold text-[#231712]">Topik ${esc(s.topic)}</span>
+          ${badge}
+        </div>
+        <p class="text-[11px] text-[#231712]/75 truncate" title="${esc(s.text)}">
+          Dilaksanakan ${esc(s.completedDate)}: ${esc(s.text)}
+        </p>
+        ${batang(`Sebelum (${n} hari)`, sebelum, 'bg-espresso-hatch border border-[#231712]')}
+        ${batang(`Sesudah (${n} hari)`, sesudah, 'bg-[#231712]')}
+      </div>
+    `;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="space-y-3.5">${kartu}</div>
+    <p class="mt-3 text-[11px] text-[#231712]/75">
+      Menghitung keluhan pada topik yang sama, maksimal ${EVALUASI_HARI} hari sebelum vs sesudah tanggal pelaksanaan
+      (tidak ikut filter sidebar). "Pantau" = belum ${EVALUASI_MIN_HARI} hari, belum bisa disimpulkan.
+    </p>
+  `;
+}
+
 function renderTab3(filtered) {
   const histContainer = document.getElementById('completedSuggestionsList');
   document.getElementById('completedHistoryBadge').textContent = `${appState.completedSuggestions.length} selesai`;
@@ -1168,7 +1269,7 @@ function renderTab3(filtered) {
             </span>
             <span class="text-[11px] font-bold text-[#231712]">Topik: ${esc(item.topic)}</span>
           </div>
-          <span class="text-[11px] text-[#231712]/70">Selesai: ${esc(item.completedDate)}</span>
+          <span class="text-[11px] text-[#231712]/70">Selesai: ${esc(item.completedDate)}${item.completedBy ? ` • ${esc(item.completedBy)}` : ''}</span>
         </div>
         <p class="text-xs font-extrabold text-[#231712]">${esc(item.text)}</p>
         <p class="mt-1.5 text-[11px] text-[#231712]/85 bg-[#231712]/5 px-2.5 py-1.5 rounded-lg border border-[#231712]/15">
